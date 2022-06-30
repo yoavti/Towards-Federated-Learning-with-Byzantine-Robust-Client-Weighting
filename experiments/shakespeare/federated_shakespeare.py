@@ -76,7 +76,7 @@ def configure_training(task_spec: training_specs.TaskSpec,
     federated task.
   """
   ['10_percent', 'single'].index(num_byzantine)
-  ['none', 'delta_to_zero', 'sign_flip', 'constant', 'gaussian'].index(attack)
+  ['none', 'delta_to_zero', 'sign_flip', 'constant', 'gaussian', 'random_sign_flip'].index(attack)
 
   shakespeare_train, _ = tff.simulation.datasets.shakespeare.load_data()
   _, shakespeare_test = shakespeare_dataset.get_centralized_datasets(
