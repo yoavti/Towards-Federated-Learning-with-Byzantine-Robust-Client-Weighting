@@ -45,7 +45,7 @@ The `--aggregation` parameter determines the type of the aggregation we use and 
 
 #### Attack type command line parameters
 
-`--attack` is an optional parameter that determines the type of attack we use and expects either `delta_to_zero`, `sign_flip`, `constant`, or `gaussian`. If this argument is not given, no attack will be executed.
+`--attack` is an optional parameter that determines the type of attack we use and expects either `delta_to_zero`, `sign_flip`, `constant`, `gaussian`, or `random_sign_flip`. If this argument is not given, no attack will be executed.
 
 #### Number of Byzantines
 
@@ -61,7 +61,7 @@ In order to use our plotting script without change, make sure to name each exper
 * `weight_preproc` corresponds to `passthrough`, `ignore`, or `truncate`.
 * `aggregation` corresponds to `mean`, `tmean` (trimmed mean), or `median`.
 * `attack` corresponds to `​` (empty string, no attack), `_byz_{attack_type}` (10% attackers), or `_byz_{attack_type}_single` (a single attacker).
-  * `attack_type` corresponds to `d0` (delta-to-zero), `sf` (sign flip), `const` (constant), or `gauss` (gaussian).
+  * `attack_type` corresponds to `d0` (delta-to-zero), `sf` (sign flip), `const` (constant), `gauss` (gaussian), or `rsf` (random sign flip).
 
 ## Results
 
