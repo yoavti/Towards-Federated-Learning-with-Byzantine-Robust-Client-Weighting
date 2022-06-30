@@ -10,14 +10,6 @@ This sub-project contains the Shakespeare experiments presented in the paper.
 pip install -r requirements.txt
 ```
 
-### Initialize git submodule
-
-Run the following to make sure that the remote Google's [federated research repo](https://github.com/google-research/federated) is cloned as a submodule:
-
-```setup
-git submodule update --init --recursive
-```
-
 ### Update PYTHONPATH
 
 Add `experiments/federated/google_tff_research` to `PYTHONPATH`.
@@ -43,7 +35,7 @@ Additionally, set the shared output directory for all experiments using:
 
 ### Preprocessing command line parameter
 
-The `--weight_preproc` parameter determines the type of the preprocessing we use and expects either `passthrough`, `ignore`, or `truncate`.
+The `--weight_preproc` parameter determines the type of preprocessing we use and expects either `passthrough`, `ignore`, or `truncate`.
 
 ### Aggregation command line parameter
 
@@ -57,18 +49,19 @@ The `--aggregation` parameter determines the type of the aggregation we use and 
 
 #### Number of Byzantines
 
-The `--num_byzantine` parameter determines the type of the aggregation we use and expects either `single` (a single Byzantine attacker) or `10_percent` (10% attackers).
+The `--num_byzantine` parameter determines the number of byzantine attackers and expects either `single` (a single Byzantine attacker) or `10_percent` (10% attackers).
 
 #### Reported Byzantine client weight
 
-The `--byzantine_client_weight` parameter determines the size of the local dataset that each byzantine client will report. 
+The `--byzantine_client_weight` parameter determines the size of the local dataset that each byzantine client reports. 
 
 ### Set each experiment name
 
 In order to use our plotting script without change, make sure to name each experiment using the following pattern `--experiment_name=shakespeare_{aggregation}_{weight_preproc}{attack}`, where:
 * `weight_preproc` corresponds to `passthrough`, `ignore`, or `truncate`.
 * `aggregation` corresponds to `mean`, `tmean` (trimmed mean), or `median`.
-* `attack` corresponds to `​` (empty string, no attack), `_byz_d0` (10% attackers), or `_byz_d0_single` (a single attacker).
+* `attack` corresponds to `​` (empty string, no attack), `_byz_{attack_type}` (10% attackers), or `_byz_{attack_type}_single` (a single attacker).
+  * `attack_type` corresponds to `d0` (delta-to-zero) of `sf` (sign flip).
 
 ## Results
 
