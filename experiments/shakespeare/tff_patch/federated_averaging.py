@@ -136,6 +136,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
         weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
       elif self._attack == 'sign_flip':
         weights_delta = tf.nest.map_structure(lambda _: -_, weights_delta)
+      elif self._attack == 'constant':
+        weights_delta = tf.nest.map_structure(lambda _: _ - _ + 100., weights_delta)
 
     # TODO(b/122071074): Consider moving this functionality into
     # tff.federated_mean?
