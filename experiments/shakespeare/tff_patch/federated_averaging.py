@@ -59,7 +59,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
                    ClientWeighting,
                    ClientWeightFnType] = ClientWeighting.NUM_EXAMPLES,
                use_experimental_simulation_loop: bool = False,
-               byzantine_client_weight: int = 1_000_000):
+               byzantine_client_weight: int = 1_000_000,
+               attack='none'):
     """Creates the client computation for Federated Averaging.
 
     Note: All variable creation required for the client computation (e.g. model
@@ -91,6 +92,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
     self._dataset_reduce_fn = dataset_reduce.build_dataset_reduce_fn(
         use_experimental_simulation_loop)
     self._byzantine_client_weight = byzantine_client_weight
+    self._attack = attack
 
   @property
   def variables(self):
@@ -130,8 +132,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
     model_output = model.report_local_outputs()
 
     if byzflag:
-      # delta to zero attack
-      weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
+      if self._attack == 'delta_to_zero':
+        weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
 
     # TODO(b/122071074): Consider moving this functionality into
     # tff.federated_mean?
@@ -178,6 +180,7 @@ def build_federated_averaging_process(
         factory.WeightedAggregationFactory] = None,
     use_experimental_simulation_loop: bool = False,
     byzantine_client_weight: int = 1_000_000,
+    attack='none',
 ) -> iterative_process.IterativeProcess:
   """Builds an iterative process that performs federated averaging.
 
@@ -272,7 +275,7 @@ def build_federated_averaging_process(
 
   def client_fed_avg(model_fn: Callable[[], model_lib.Model]) -> ClientFedAvg:
     return ClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting,
-                        use_experimental_simulation_loop, byzantine_client_weight)
+                        use_experimental_simulation_loop, byzantine_client_weight, attack)
 
   iter_proc = optimizer_utils.build_model_delta_optimizer_process(
       model_fn,

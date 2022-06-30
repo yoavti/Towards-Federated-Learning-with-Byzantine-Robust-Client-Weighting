@@ -192,7 +192,8 @@ def main(argv):
       # broadcast_process=encoded_broadcast_process,
       model_update_aggregation_factory=aggregator,
       # use_experimental_simulation_loop=True,
-      byzantine_client_weight=FLAGS.byzantine_client_weight
+      byzantine_client_weight=FLAGS.byzantine_client_weight,
+      attack=FLAGS.attack,
     )
 
   task_spec = training_specs.TaskSpec(
