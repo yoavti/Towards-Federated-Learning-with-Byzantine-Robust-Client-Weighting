@@ -77,7 +77,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
 
   flags.DEFINE_enum('aggregation', 'mean', ['mean', 'trimmed_mean', 'median'], 'select aggregation type to use')
 
-  flags.DEFINE_enum('attack', 'none', ['none', 'delta_to_zero'], 'select attack type')
+  flags.DEFINE_enum('attack', 'none', ['none', 'delta_to_zero', 'sign_flip'], 'select attack type')
   flags.DEFINE_enum('num_byzantine', '10_percent', ['10_percent', 'single'], 'select the number of byzantine clients')
   flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'fake client weight byzantine client publish')
 

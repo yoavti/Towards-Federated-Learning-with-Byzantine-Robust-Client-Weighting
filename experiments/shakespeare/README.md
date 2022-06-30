@@ -51,10 +51,17 @@ The `--aggregation` parameter determines the type of the aggregation we use and 
 
 ### Attack command line parameters
 
-We have execute all previous experiment three time:
-1. Without attack: no additional parameter needed.
-2. 10% precent attackers: add the following `--attack=delta_to_zero --num_byzantine=10_percent --byzantine_client_weight=1_000_000`.
-3. A single attacker: add the following `--attack=delta_to_zero --num_byzantine=single --byzantine_client_weight=10_000_000`. 
+#### Attack type command line parameters
+
+`--attack` is an optional parameter that determines the type of attack we use and expects either `delta_to_zero` or `sign_flip`. If this argument is not given, no attack will be executed.
+
+#### Number of Byzantines
+
+The `--num_byzantine` parameter determines the type of the aggregation we use and expects either `single` (a single Byzantine attacker) or `10_percent` (10% attackers).
+
+#### Reported Byzantine client weight
+
+The `--byzantine_client_weight` parameter determines the size of the local dataset that each byzantine client will report. 
 
 ### Set each experiment name
 
