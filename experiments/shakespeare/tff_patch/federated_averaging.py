@@ -27,6 +27,7 @@ from typing import Any, Callable, Optional, Union
 
 import tensorflow as tf
 
+from tensorflow_federated import tf_computation
 from tensorflow_federated.python.aggregators import factory
 from tensorflow_federated.python.common_libs import py_typecheck
 from tensorflow_federated.python.core.api import computations
@@ -38,6 +39,14 @@ from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
 from experiments.shakespeare.tff_patch import optimizer_utils
+
+
+rng = tf.random.Generator.from_non_deterministic_state()
+
+
+@tf_computation
+def normal_noise(mean, stddev):
+  return rng.normal((), mean=mean, stddev=stddev)
 
 
 class ClientWeighting(enum.Enum):
@@ -138,6 +147,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
         weights_delta = tf.nest.map_structure(lambda _: -_, weights_delta)
       elif self._attack == 'constant':
         weights_delta = tf.nest.map_structure(lambda _: _ - _ + 100., weights_delta)
+      elif self._attack == 'gaussian':
+        weights_delta = tf.nest.map_structure(lambda _: _ - _ + normal_noise(0., 200.), weights_delta)
 
     # TODO(b/122071074): Consider moving this functionality into
     # tff.federated_mean?
