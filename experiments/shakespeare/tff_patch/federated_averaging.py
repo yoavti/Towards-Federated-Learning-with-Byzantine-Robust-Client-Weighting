@@ -135,15 +135,6 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
     if byzflag:
       # if self._attack == 'delta_to_zero':
       #   weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
-      # elif self._attack == 'sign_flip':
-      #   weights_delta = tf.nest.map_structure(lambda _: -_, weights_delta)
-      # elif self._attack == 'random_sign_flip':
-      #   noise = random.gauss(-2, 1)
-      #   weights_delta = tf.nest.map_structure(lambda _: _ * noise, weights_delta)
-      # elif self._attack == 'constant':
-      #   weights_delta = tf.nest.map_structure(lambda _: _ - _ + 100., weights_delta)
-      # elif self._attack == 'gaussian':
-      #   weights_delta = tf.nest.map_structure(lambda _: _ - _ + random.gauss(0, 200), weights_delta)
       weights_delta = self._attack.attack(weights_delta)
 
     # TODO(b/122071074): Consider moving this functionality into
