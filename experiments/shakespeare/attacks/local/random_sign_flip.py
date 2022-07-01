@@ -1,10 +1,10 @@
-from .base import LocalAttack
+from experiments.shakespeare.attacks.local.base import LocalAttack
 import tensorflow as tf
 import random
 
 
 class RandomSignFlipAttack(LocalAttack):
-  def __int__(self, mu=-2, sigma=1):
+  def __init__(self, mu=-2, sigma=1):
     self._mu = mu
     self._sigma = sigma
 

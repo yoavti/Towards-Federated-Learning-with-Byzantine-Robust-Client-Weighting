@@ -1,9 +1,9 @@
-from .base import LocalAttack
+from experiments.shakespeare.attacks.local.base import LocalAttack
 import tensorflow as tf
 
 
 class ConstantAttack(LocalAttack):
-  def __int__(self, scalar=100.):
+  def __init__(self, scalar=100.):
     self._scalar = scalar
 
   def attack(self, weights_delta):

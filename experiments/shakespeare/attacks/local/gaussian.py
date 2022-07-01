@@ -1,10 +1,10 @@
-from .base import LocalAttack
+from experiments.shakespeare.attacks.local.base import LocalAttack
 import tensorflow as tf
 import random
 
 
 class GaussianAttack(LocalAttack):
-  def __int__(self, mu=0, sigma=200):
+  def __init__(self, mu=0, sigma=200):
     self._mu = mu
     self._sigma = sigma
 
