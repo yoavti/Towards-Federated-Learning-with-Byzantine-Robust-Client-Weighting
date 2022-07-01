@@ -33,6 +33,7 @@ from optimization.shared import optimizer_utils
 from experiments.shakespeare import federated_shakespeare
 import experiments.shakespeare.tff_patch as tff_patch
 from experiments.shakespeare.numpy_aggr import NumpyAggrFactory
+from experiments.shakespeare.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
 from utils import training_loop
 from utils import utils_impl
 
@@ -78,7 +79,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
   flags.DEFINE_enum('aggregation', 'mean', ['mean', 'trimmed_mean', 'median'], 'select aggregation type to use')
 
   flags.DEFINE_enum('attack', 'none',
-                    ['none', 'delta_to_zero', 'sign_flip', 'constant', 'gaussian', 'random_sign_flip'],
+                    ['none', 'sign_flip', 'constant', 'gaussian', 'random_sign_flip'],  # delta_to_zero
                     'select attack type')
   flags.DEFINE_enum('num_byzantine', '10_percent', ['10_percent', 'single'], 'select the number of byzantine clients')
   flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'fake client weight byzantine client publish')
@@ -186,6 +187,16 @@ def main(argv):
       else:
         aggregator = NumpyAggrFactory(inner_aggregator)
 
+    attack = None
+    if FLAGS.attack == 'constant':
+      attack = ConstantAttack()
+    if FLAGS.attack == 'gaussian':
+      attack = GaussianAttack()
+    if FLAGS.attack == 'random_sign_flip':
+      attack = RandomSignFlipAttack()
+    if FLAGS.attack == 'sign_flip':
+      attack = SignFlipAttack()
+
     return tff_patch.build_federated_averaging_process(
       model_fn=model_fn,
       client_optimizer_fn=client_optimizer_fn,
@@ -195,7 +206,7 @@ def main(argv):
       model_update_aggregation_factory=aggregator,
       # use_experimental_simulation_loop=True,
       byzantine_client_weight=FLAGS.byzantine_client_weight,
-      attack=FLAGS.attack,
+      attack=attack,
     )
 
   task_spec = training_specs.TaskSpec(

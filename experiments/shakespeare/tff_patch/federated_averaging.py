@@ -23,7 +23,6 @@ Communication-Efficient Learning of Deep Networks from Decentralized Data
 
 import collections
 import enum
-import random
 from typing import Any, Callable, Optional, Union
 
 import tensorflow as tf
@@ -39,6 +38,7 @@ from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
 from experiments.shakespeare.tff_patch import optimizer_utils
+from experiments.shakespeare.attacks.local.base import LocalAttack
 
 
 class ClientWeighting(enum.Enum):
@@ -61,7 +61,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
                    ClientWeightFnType] = ClientWeighting.NUM_EXAMPLES,
                use_experimental_simulation_loop: bool = False,
                byzantine_client_weight: int = 1_000_000,
-               attack='none'):
+               attack: Optional[LocalAttack] = None):
     """Creates the client computation for Federated Averaging.
 
     Note: All variable creation required for the client computation (e.g. model
@@ -133,17 +133,9 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
     model_output = model.report_local_outputs()
 
     if byzflag:
-      if self._attack == 'delta_to_zero':
-        weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
-      elif self._attack == 'sign_flip':
-        weights_delta = tf.nest.map_structure(lambda _: -_, weights_delta)
-      elif self._attack == 'random_sign_flip':
-        noise = random.gauss(-2, 1)
-        weights_delta = tf.nest.map_structure(lambda _: _ * noise, weights_delta)
-      elif self._attack == 'constant':
-        weights_delta = tf.nest.map_structure(lambda _: _ - _ + 100., weights_delta)
-      elif self._attack == 'gaussian':
-        weights_delta = tf.nest.map_structure(lambda _: _ - _ + random.gauss(0, 200), weights_delta)
+      # if self._attack == 'delta_to_zero':
+      #   weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
+      weights_delta = self._attack.attack(weights_delta)
 
     # TODO(b/122071074): Consider moving this functionality into
     # tff.federated_mean?
@@ -190,7 +182,7 @@ def build_federated_averaging_process(
         factory.WeightedAggregationFactory] = None,
     use_experimental_simulation_loop: bool = False,
     byzantine_client_weight: int = 1_000_000,
-    attack='none',
+    attack: Optional[LocalAttack] = None,
 ) -> iterative_process.IterativeProcess:
   """Builds an iterative process that performs federated averaging.
 
