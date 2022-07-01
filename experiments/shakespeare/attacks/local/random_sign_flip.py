@@ -3,7 +3,7 @@ import tensorflow as tf
 import random
 
 
-class GaussianAttack(LocalAttack):
+class RandomSignFlipAttack(LocalAttack):
   def __int__(self, mu=-2, sigma=1):
     self._mu = mu
     self._sigma = sigma
