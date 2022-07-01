@@ -3,7 +3,7 @@ import tensorflow as tf
 
 
 class ConstantAttack(LocalAttack):
-  def __int__(self, scalar):
+  def __int__(self, scalar=100.):
     self._scalar = scalar
 
   def attack(self, weights_delta):
