@@ -30,7 +30,7 @@ from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import find_U
 from optimization.shared import training_specs
 from optimization.shared import optimizer_utils
-from experiments.shakespeare import federated_shakespeare
+from experiments.shakespeare import federated_shakespeare, federated_stackoverflow
 import experiments.shakespeare.tff_patch as tff_patch
 from experiments.shakespeare.numpy_aggr import NumpyAggrFactory
 from experiments.shakespeare.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
@@ -39,7 +39,7 @@ from utils import utils_impl
 
 
 _SUPPORTED_TASKS = [
-  'shakespeare',
+  'shakespeare', 'stackoverflow_nwp',
 ]
 
 with utils_impl.record_hparam_flags() as optimizer_flags:
@@ -95,10 +95,24 @@ with utils_impl.record_hparam_flags() as shakespeare_flags:
     'shakespeare_sequence_length', 80,
     'Length of character sequences to use for the RNN model.')
 
+with utils_impl.record_hparam_flags() as so_nwp_flags:
+  # Stack Overflow NWP flags
+  flags.DEFINE_integer('so_nwp_vocab_size', 10000, 'Size of vocab to use.')
+  flags.DEFINE_integer('so_nwp_num_oov_buckets', 1,
+                       'Number of out of vocabulary buckets.')
+  flags.DEFINE_integer('so_nwp_sequence_length', 20,
+                       'Max sequence length to use.')
+  flags.DEFINE_integer('so_nwp_max_elements_per_user', 1000, 'Max number of '
+                       'training sentences to use per user.')
+  flags.DEFINE_integer(
+      'so_nwp_num_validation_examples', 10000, 'Number of examples '
+      'to use from test set for per-round validation.')
+
 FLAGS = flags.FLAGS
 
 TASK_FLAGS = collections.OrderedDict(
   shakespeare=shakespeare_flags,
+  stackoverflow_nwp=so_nwp_flags,
 )
 
 
@@ -219,6 +233,14 @@ def main(argv):
   if FLAGS.task == 'shakespeare':
     runner_spec = federated_shakespeare.configure_training(
       task_spec, sequence_length=FLAGS.shakespeare_sequence_length, attack=FLAGS.attack, num_byzantine=FLAGS.num_byzantine)
+  elif FLAGS.task == 'shakespeare':
+    runner_spec = federated_stackoverflow.configure_training(
+      task_spec,
+      vocab_size=FLAGS.so_nwp_vocab_size,
+      num_oov_buckets=FLAGS.so_nwp_num_oov_buckets,
+      sequence_length=FLAGS.so_nwp_sequence_length,
+      max_elements_per_user=FLAGS.so_nwp_max_elements_per_user,
+      num_validation_examples=FLAGS.so_nwp_num_validation_examples)
   else:
     raise ValueError(
       '--task flag {} is not supported, must be one of {}.'.format(
