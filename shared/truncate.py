@@ -55,6 +55,8 @@ def find_U(N, *, alpha_star=0.5, alpha=0.1):
             b = t
         numerator = a - c * alpha_star
         denominator = d * alpha_star - b
+        if isclose(denominator, 0):
+            return n_u
         return numerator / denominator
     return N[-1]
 
