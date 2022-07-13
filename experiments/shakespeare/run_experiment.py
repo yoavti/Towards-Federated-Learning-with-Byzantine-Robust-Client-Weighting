@@ -27,7 +27,7 @@ import tensorflow_federated as tff
 from tensorflow_federated.python.learning import ClientWeighting
 
 from shared.aggregators import trimmed_mean, median, mean
-from shared.truncate import find_U
+from shared.truncate import find_U, truncate
 from optimization.shared import training_specs
 from optimization.shared import optimizer_utils
 from experiments.shakespeare import federated_shakespeare, federated_stackoverflow
@@ -191,8 +191,9 @@ def main(argv):
 
     if FLAGS.weight_preproc == 'truncate':
       def aggregate_with_truncation(points, weights):
-        U = find_U(weights, alpha_star=0.5, alpha=0.1)
-        return inner_aggregator(points, np.where(weights < U, weights, U))
+        # U = find_U(weights, alpha_star=0.5, alpha=0.1)
+        # return inner_aggregator(points, np.where(weights < U, weights, U))
+        return inner_aggregator(points, truncate(weights))
 
       aggregator = NumpyAggrFactory(aggregate_with_truncation)
     else:
