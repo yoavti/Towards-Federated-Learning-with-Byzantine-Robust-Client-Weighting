@@ -1,6 +1,6 @@
-from itertools import islice
-from math import ceil, isclose, floor
+from math import ceil, isclose
 import numpy as np
+from shared.utils import EPSILON, trunc_helpers
 
 
 def find_alpha(U, N, alpha_star=0.5, sort_N=False):
@@ -16,16 +16,6 @@ def find_alpha(U, N, alpha_star=0.5, sort_N=False):
         if top_k_total_weight > allowed_weight:
             return (k - 1) / len(N)
             # len(N) * alpha
-
-
-EPSILON = 1e-3
-
-
-def trunc_helpers(N, alpha):
-    N = list(N)
-    K = len(N)
-    t = int(K * alpha + 1)
-    return K, t
 
 
 def maximal_weight_proportion(N, alpha):
@@ -67,6 +57,11 @@ def find_U(N, *, alpha_star=0.5, alpha=0.1):
         denominator = d * alpha_star - b
         return numerator / denominator
     return N[-1]
+
+
+def truncate(N, *, alpha_star=0.5, alpha=0.1):
+    U = find_U(N, alpha_star=alpha_star, alpha=alpha)
+    return trunc(N, U)
 
 
 def find_U_alpha_pairs(N, alpha_star=0.5):
