@@ -18,7 +18,6 @@ import collections
 import functools
 import os.path
 from typing import Callable
-import numpy as np
 
 from absl import app
 from absl import flags
@@ -27,7 +26,7 @@ import tensorflow_federated as tff
 from tensorflow_federated.python.learning import ClientWeighting
 
 from shared.aggregators import trimmed_mean, median, mean
-from shared.truncate import find_U, truncate
+from shared.truncate import truncate
 from optimization.shared import training_specs
 from optimization.shared import optimizer_utils
 from experiments.shakespeare import federated_shakespeare, federated_stackoverflow
