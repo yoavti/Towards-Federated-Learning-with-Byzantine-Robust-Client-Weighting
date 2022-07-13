@@ -233,7 +233,7 @@ def main(argv):
   if FLAGS.task == 'shakespeare':
     runner_spec = federated_shakespeare.configure_training(
       task_spec, sequence_length=FLAGS.shakespeare_sequence_length, attack=FLAGS.attack, num_byzantine=FLAGS.num_byzantine)
-  elif FLAGS.task == 'shakespeare':
+  elif FLAGS.task == 'stackoverflow_nwp':
     runner_spec = federated_stackoverflow.configure_training(
       task_spec,
       vocab_size=FLAGS.so_nwp_vocab_size,
