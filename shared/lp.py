@@ -5,8 +5,11 @@ from shared.utils import EPSILON, trunc_helpers
 
 def lp(N, *, alpha=0.1, alpha_star=0.5):
     K, t = trunc_helpers(N, alpha)
-    N = sorted(N, reverse=True)
-    N = list(N)
+    N = np.array(N)
+    idx = np.argsort(N)
+    inv_idx = np.empty_like(idx)
+    inv_idx[idx] = np.arange(idx.shape[0])
+    N = N[idx]
     alpha_star -= EPSILON  # helps deal with numerical errors
 
     # Create the linear solver using the CBC backend
@@ -36,4 +39,5 @@ def lp(N, *, alpha=0.1, alpha_star=0.5):
 
     ret = [n.solution_value() for n in ns]
     ret = np.array(ret)
+    ret = ret[inv_idx]
     return ret
