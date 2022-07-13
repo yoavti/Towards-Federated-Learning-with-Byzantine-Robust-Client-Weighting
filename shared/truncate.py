@@ -105,26 +105,6 @@ def plot_U_alpha_pairs(U_alpha_pairs, alpha_star):
     fig.savefig('tradeoff.pdf', format='pdf')
 
 
-def find_U_2(N, f, alpha_star):
-    K = len(N)
-    for u, n_u in islice(reversed(list(enumerate(N))), 1, None):
-        truncated = [min(n_u, n_k) for n_k in N]
-
-        sum_truncated = sum(truncated)
-
-        eq_trunc = sum(truncated[-f:]) - alpha_star * sum_truncated
-
-        if isclose(eq_trunc, 0):
-            return n_u
-        if eq_trunc < 0:
-            a = sum(N[-f:(u + 1)])
-            b = K - (u + 1)
-            c = sum(N[:(u + 1)])
-            d = K - (u + 1)
-            return floor((a - c * alpha_star) / (d * alpha_star - b))
-    return 1
-
-
 def find_U_alpha_pairs_2(N, alpha_star=0.5):
     # N should be sorted in reverse
     K = len(N)
@@ -138,7 +118,7 @@ def find_U_alpha_pairs_2(N, alpha_star=0.5):
 
     res = []
     while f != 0:
-        U = find_U_2(N, f, alpha_star)
+        U = find_U(N, alpha=alpha, alpha_star=alpha_star)
 
         res.append((alpha, U))
 
