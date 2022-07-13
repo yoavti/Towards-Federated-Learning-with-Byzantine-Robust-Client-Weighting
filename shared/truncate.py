@@ -30,11 +30,11 @@ def trunc_helpers(N, alpha):
 
 def maximal_weight_proportion(N, alpha):
   K, t = trunc_helpers(N, alpha)
-  return sum(N[:t]) / sum(N)
+  return N[:t].sum() / N.sum()
 
 
 def trunc(vec, threshold):
-  return [min(val, threshold) for val in vec]
+    return np.where(vec > threshold, threshold, vec)
 
 
 def is_valid_solution(N, alpha, alpha_star):
@@ -43,8 +43,9 @@ def is_valid_solution(N, alpha, alpha_star):
 
 
 def find_U(N, *, alpha_star=0.5, alpha=0.1):
-    N = sorted(N, reverse=True)
     N = np.array(N)
+    N = np.sort(N)
+    N = N[::-1]
     K, t = trunc_helpers(N, alpha)
     alpha_star -= EPSILON  # helps deal with numerical errors
     for u, n_u in enumerate(N):
@@ -54,10 +55,10 @@ def find_U(N, *, alpha_star=0.5, alpha=0.1):
         mwp = maximal_weight_proportion(truncated, alpha)
         if isclose(mwp, alpha_star):
             return n_u
-        c = sum(N[u:])
+        c = N[u:].sum()
         d = u
         if u < t:
-            a = sum(N[u:t])
+            a = N[u:t].sum()
             b = u
         else:
             a = 0
