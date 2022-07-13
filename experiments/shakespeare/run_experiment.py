@@ -27,6 +27,7 @@ from tensorflow_federated.python.learning import ClientWeighting
 
 from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate
+from shared.lp import lp
 from optimization.shared import training_specs
 from optimization.shared import optimizer_utils
 from experiments.shakespeare import federated_shakespeare, federated_stackoverflow
@@ -71,7 +72,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
                        'How often to checkpoint the global model.')
 
   # Parameters specific for our paper
-  flags.DEFINE_enum('weight_preproc', 'passthrough', ['passthrough', 'ignore', 'uniform', 'truncate'],
+  flags.DEFINE_enum('weight_preproc', 'passthrough', ['passthrough', 'ignore', 'uniform', 'truncate', 'lp'],
                     'What to do with the clients\' relative weights.')
   # flags.DEFINE_float('weight_truncate_U', None, 'truncate threshold when weight_preproc is \'truncate\'')
 
@@ -82,6 +83,8 @@ with utils_impl.record_hparam_flags() as shared_flags:
                     'select attack type')
   flags.DEFINE_enum('num_byzantine', '10_percent', ['10_percent', 'single'], 'select the number of byzantine clients')
   flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'fake client weight byzantine client publish')
+
+preproc_funcs = {'truncate': truncate, 'lp': lp}
 
 with utils_impl.record_hparam_flags() as task_flags:
   # Task specification
@@ -188,13 +191,12 @@ def main(argv):
     else:
       inner_aggregator = mean
 
-    if FLAGS.weight_preproc == 'truncate':
-      def aggregate_with_truncation(points, weights):
-        # U = find_U(weights, alpha_star=0.5, alpha=0.1)
-        # return inner_aggregator(points, np.where(weights < U, weights, U))
-        return inner_aggregator(points, truncate(weights))
+    if FLAGS.weight_preproc in preproc_funcs:
 
-      aggregator = NumpyAggrFactory(aggregate_with_truncation)
+      def aggregate_with_preproc(points, weights):
+        return inner_aggregator(points, preproc_funcs[FLAGS.weight_preproc](weights))
+
+      aggregator = NumpyAggrFactory(aggregate_with_preproc)
     else:
       if FLAGS.aggregation == 'mean':
         aggregator = None  # defaults to reduce mean
