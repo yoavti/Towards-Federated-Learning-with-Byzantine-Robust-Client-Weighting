@@ -232,7 +232,10 @@ def main(argv):
 
   if FLAGS.task == 'shakespeare':
     runner_spec = federated_shakespeare.configure_training(
-      task_spec, sequence_length=FLAGS.shakespeare_sequence_length, attack=FLAGS.attack, num_byzantine=FLAGS.num_byzantine)
+      task_spec,
+      sequence_length=FLAGS.shakespeare_sequence_length,
+      attack=FLAGS.attack,
+      num_byzantine=FLAGS.num_byzantine)
   elif FLAGS.task == 'stackoverflow_nwp':
     runner_spec = federated_stackoverflow.configure_training(
       task_spec,
@@ -240,7 +243,9 @@ def main(argv):
       num_oov_buckets=FLAGS.so_nwp_num_oov_buckets,
       sequence_length=FLAGS.so_nwp_sequence_length,
       max_elements_per_user=FLAGS.so_nwp_max_elements_per_user,
-      num_validation_examples=FLAGS.so_nwp_num_validation_examples)
+      num_validation_examples=FLAGS.so_nwp_num_validation_examples,
+      attack=FLAGS.attack,
+      num_byzantine=FLAGS.num_byzantine)
   else:
     raise ValueError(
       '--task flag {} is not supported, must be one of {}.'.format(
