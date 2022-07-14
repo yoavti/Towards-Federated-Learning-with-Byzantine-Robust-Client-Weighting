@@ -27,7 +27,7 @@ def lp(N, *, alpha=0.1, alpha_star=0.5):
     for i in range(K - 1):
         solver.Add(ns[i] >= ns[i + 1])
     # 2.3. xi = |n' - n|
-    for i in range(K - 1):
+    for i in range(K):
         solver.Add(xis[i] >= N[i] - ns[i])
         solver.Add(xis[i] <= N[i] - ns[i])
 
