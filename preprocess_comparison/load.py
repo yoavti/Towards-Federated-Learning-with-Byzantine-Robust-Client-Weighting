@@ -17,7 +17,8 @@ def load_dataset(name):
     return module.load_data(cache_dir=cache_dir)[0]
 
 
-def get_client_weights(dataset, limit_count=None):
+def get_client_weights(name, limit_count=None):
+    dataset = load_dataset(name)
     client_datasets = dataset.datasets(limit_count=limit_count)
     weights = [len(list(client_dataset)) for client_dataset in client_datasets]
     weights = np.array(weights)
