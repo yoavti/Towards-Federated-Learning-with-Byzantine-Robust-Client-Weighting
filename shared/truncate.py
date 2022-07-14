@@ -1,6 +1,6 @@
 from math import ceil, isclose
 import numpy as np
-from shared.utils import EPSILON, trunc_helpers
+from shared.utils import EPSILON, trunc_helpers, maximal_weight_proportion, is_valid_solution
 
 
 def find_alpha(U, N, alpha_star=0.5, sort_N=False):
@@ -18,18 +18,8 @@ def find_alpha(U, N, alpha_star=0.5, sort_N=False):
             # len(N) * alpha
 
 
-def maximal_weight_proportion(N, alpha):
-  K, t = trunc_helpers(N, alpha)
-  return N[:t].sum() / N.sum()
-
-
 def trunc(vec, threshold):
     return np.where(vec > threshold, threshold, vec)
-
-
-def is_valid_solution(N, alpha, alpha_star):
-  mwp = maximal_weight_proportion(N, alpha)
-  return mwp <= alpha_star
 
 
 def find_U(N, *, alpha_star=0.5, alpha=0.1):

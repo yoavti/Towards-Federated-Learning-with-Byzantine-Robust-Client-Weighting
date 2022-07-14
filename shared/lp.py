@@ -6,7 +6,7 @@ from shared.utils import EPSILON, trunc_helpers
 def lp(N, *, alpha=0.1, alpha_star=0.5):
     K, t = trunc_helpers(N, alpha)
     N = np.array(N)
-    idx = np.argsort(N)
+    idx = np.argsort(N)[::-1]
     inv_idx = np.empty_like(idx)
     inv_idx[idx] = np.arange(idx.shape[0])
     N = N[idx]
@@ -27,7 +27,7 @@ def lp(N, *, alpha=0.1, alpha_star=0.5):
     for i in range(K - 1):
         solver.Add(ns[i] >= ns[i + 1])
     # 2.3. xi = |n' - n|
-    for i in range(K - 1):
+    for i in range(K):
         solver.Add(xis[i] >= N[i] - ns[i])
         solver.Add(xis[i] <= N[i] - ns[i])
 
