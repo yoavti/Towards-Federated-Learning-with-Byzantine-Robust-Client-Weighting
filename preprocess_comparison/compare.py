@@ -17,7 +17,7 @@ available_preprocess = {'truncate': truncate, 'lp': lp}
 with utils_impl.record_hparam_flags() as comparison_flags:
     flags.DEFINE_enum('dataset', 'emnist', list(dataset_modules), 'Which dataset to take weights from.')
     flags.DEFINE_integer('limit_count', None, 'Number of weights to take from dataset.')
-    flags.DEFINE_multi_enum('weight_preproc', list(available_preprocess), list(available_preprocess),
+    flags.DEFINE_multi_enum('preprocess_funcs', list(available_preprocess), list(available_preprocess),
                             'What to do with the clients\' relative weights.')
     flags.DEFINE_float('alpha', 0.1, 'Byzantine proportion.')
     flags.DEFINE_float('alpha_star', 0.5, 'Byzantine weight proportion.')
@@ -41,12 +41,12 @@ def compare_weights(original_weights, named_new_weights, named_metrics,
                 print(f'{preprocess_name} did not produce a valid solution. mwp={mwp}, whereas alpha_star={alpha_star}')
     # plotting solutions
     if plot:
-        plot_weights(named_new_weights | {'original': original_weights})
+        plot_weights({'original': original_weights, **named_new_weights})
     # comparing mwp
     if compare_mwp:
         print('mwp')
         pp.pprint({preprocess_name: maximal_weight_proportion(new_weights, alpha)
-                   for preprocess_name, new_weights in named_new_weights})
+                   for preprocess_name, new_weights in named_new_weights.items()})
     # compare metrics
     if named_metrics:
         print('metrics')
@@ -60,9 +60,9 @@ def main(_):
     # loading client weights
     weights = get_client_weights(FLAGS.dataset, FLAGS.limit_count)
     # applying different preprocess procedures
-    selected_preprocess = {name: available_preprocess[name] for name in FLAGS.weights_preproc}
+    selected_preprocess = {name: available_preprocess[name] for name in FLAGS.preprocess_funcs}
     named_new_weights = {name: preprocess(weights, alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
-                         for name, preprocess in selected_preprocess}
+                         for name, preprocess in selected_preprocess.items()}
     # comparing the outputs
     selected_metrics = {name: available_metrics[name] for name in FLAGS.metrics}
     compare_weights(weights, named_new_weights, selected_metrics,
