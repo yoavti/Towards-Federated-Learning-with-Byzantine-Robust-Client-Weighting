@@ -6,6 +6,9 @@ def l1_metric(v1, v2):
     return np.linalg.norm(v1 - v2, 1)
 
 
+available_metrics = {'l1': l1_metric}
+
+
 def plot_weights(named_weights):
     weights_list = named_weights.values()
     weights_list = list(weights_list)
