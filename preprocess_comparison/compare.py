@@ -12,8 +12,6 @@ def plot_weights(named_weights):
     x = np.arange(len(weights_list[0]))
     fig, axs = plt.subplots(1, len(named_weights), sharex='all', sharey='all')
     for (name, weights), ax in zip(named_weights.items(), axs):
-        print(name)
-        print(weights)
         ax.title.set_text(name)
         ax.bar(x, weights)
     plt.show()
