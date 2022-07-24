@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import PercentFormatter
 import numpy as np
 
-from utils.datasets.shakespeare_dataset import _build_tokenize_fn, SEQUENCE_LENGTH
+from google_tff_research.utils.datasets.shakespeare_dataset import _build_tokenize_fn, SEQUENCE_LENGTH
 
 from pathlib import Path
 

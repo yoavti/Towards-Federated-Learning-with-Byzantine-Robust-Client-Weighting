@@ -5,7 +5,7 @@ from preprocess_comparison.load import dataset_modules, get_client_weights
 from shared.truncate import truncate
 from shared.lp import lp
 from shared.utils import is_valid_solution, maximal_weight_proportion
-from utils import utils_impl
+from google_tff_research.utils import utils_impl
 
 from pprint import PrettyPrinter
 

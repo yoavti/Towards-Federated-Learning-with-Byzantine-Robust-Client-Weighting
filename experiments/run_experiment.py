@@ -28,15 +28,12 @@ from tensorflow_federated.python.learning import ClientWeighting
 from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate
 from shared.lp import lp
-from optimization.shared import training_specs
-from optimization.shared import optimizer_utils
+from google_tff_research.optimization.shared import optimizer_utils, training_specs
 from experiments import federated_shakespeare, federated_stackoverflow
 import experiments.tff_patch as tff_patch
 from experiments.numpy_aggr import NumpyAggrFactory
 from experiments.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
-from utils import training_loop
-from utils import utils_impl
-
+from google_tff_research.utils import training_loop, utils_impl
 
 _SUPPORTED_TASKS = [
   'shakespeare', 'stackoverflow_nwp',
