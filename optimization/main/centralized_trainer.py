@@ -34,7 +34,7 @@ from optimization.stackoverflow_lr import centralized_stackoverflow_lr
 from utils import utils_impl
 
 _SUPPORTED_TASKS = [
-    'cifar100', 'emnist_cr', 'emnist_ae', 'shakespeare', 'stackoverflow_nwp',
+    'cifar100', 'emnist_cr', 'emnist_ae', 'experiments', 'stackoverflow_nwp',
     'stackoverflow_lr'
 ]
 
@@ -135,7 +135,7 @@ def main(argv):
   elif FLAGS.task == 'emnist_ae':
     centralized_emnist_ae.run_centralized(**common_args)
 
-  elif FLAGS.task == 'shakespeare':
+  elif FLAGS.task == 'experiments':
     centralized_shakespeare.run_centralized(
         **common_args, sequence_length=FLAGS.shakespeare_sequence_length)
 

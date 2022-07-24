@@ -30,10 +30,10 @@ from shared.truncate import truncate
 from shared.lp import lp
 from optimization.shared import training_specs
 from optimization.shared import optimizer_utils
-from experiments.shakespeare import federated_shakespeare, federated_stackoverflow
-import experiments.shakespeare.tff_patch as tff_patch
-from experiments.shakespeare.numpy_aggr import NumpyAggrFactory
-from experiments.shakespeare.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
+from experiments import federated_shakespeare, federated_stackoverflow
+import experiments.tff_patch as tff_patch
+from experiments.numpy_aggr import NumpyAggrFactory
+from experiments.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
 from utils import training_loop
 from utils import utils_impl
 

@@ -37,8 +37,8 @@ from tensorflow_federated.python.learning import model_utils
 from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
-from experiments.shakespeare.tff_patch import optimizer_utils
-from experiments.shakespeare.attacks.local.base import LocalAttack
+from experiments.tff_patch import optimizer_utils
+from experiments.attacks.local.base import LocalAttack
 
 
 class ClientWeighting(enum.Enum):
@@ -151,7 +151,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
       weights_delta_weight = tf.constant(1.0)
     else:
       if byzflag:
-        # TODO generalize to things other than shakespeare
+        # TODO generalize to things other than experiments
         # TODO parameterize num_tokens (client weight)
         weights_delta_weight = self._client_weighting({'num_tokens': self._byzantine_client_weight})
       else:

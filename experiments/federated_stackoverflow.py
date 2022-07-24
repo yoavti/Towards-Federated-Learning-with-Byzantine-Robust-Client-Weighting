@@ -18,7 +18,7 @@ import functools
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from experiments.shakespeare import tff_patch
+from experiments import tff_patch
 from optimization.shared import keras_metrics
 from optimization.shared import training_specs
 from utils.datasets import stackoverflow_word_prediction

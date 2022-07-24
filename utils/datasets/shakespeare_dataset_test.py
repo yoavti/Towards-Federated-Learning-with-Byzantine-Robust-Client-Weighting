@@ -97,7 +97,7 @@ class PreprocessFnTest(tf.test.TestCase):
         .format(expected_outputs))
 
 
-SHAKESPEARE_LOAD_DATA = 'tensorflow_federated.simulation.datasets.shakespeare.load_data'
+SHAKESPEARE_LOAD_DATA = 'tensorflow_federated.simulation.datasets.experiments.load_data'
 
 
 class FederatedDatasetTest(tf.test.TestCase):

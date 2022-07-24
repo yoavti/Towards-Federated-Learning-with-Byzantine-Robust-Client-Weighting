@@ -33,7 +33,7 @@ class CentralizedTasksTest(tf.test.TestCase, parameterized.TestCase):
       ('cifar100', centralized_cifar100.run_centralized),
       ('emnist_cr', centralized_emnist.run_centralized),
       ('emnist_ae', centralized_emnist_ae.run_centralized),
-      ('shakespeare', centralized_shakespeare.run_centralized),
+      ('experiments', centralized_shakespeare.run_centralized),
       ('stackoverflow_nwp', centralized_stackoverflow.run_centralized),
       ('stackoverflow_lr', centralized_stackoverflow_lr.run_centralized),
   )

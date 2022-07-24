@@ -1,4 +1,4 @@
-from experiments.shakespeare.attacks.local.base import LocalAttack
+from experiments.attacks.local.base import LocalAttack
 import tensorflow as tf
 
 

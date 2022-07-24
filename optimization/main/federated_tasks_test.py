@@ -42,7 +42,7 @@ class FederatedTasksTest(tf.test.TestCase, parameterized.TestCase):
       ('cifar100', 'cifar100', federated_cifar100.configure_training),
       ('emnist_cr', 'emnist_cr', federated_emnist.configure_training),
       ('emnist_ae', 'emnist_ae', federated_emnist_ae.configure_training),
-      ('shakespeare', 'shakespeare', federated_shakespeare.configure_training),
+      ('experiments', 'experiments', federated_shakespeare.configure_training),
       ('stackoverflow_nwp', 'stackoverflow_nwp',
        federated_stackoverflow.configure_training),
       ('stackoverflow_lr', 'stackoverflow_lr',

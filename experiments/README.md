@@ -25,7 +25,7 @@ We use the shared command line parameters and each combination of the preprocess
 ### Shared command line parameters 
 
 ```shell
---task=shakespeare --clients_per_round=10 --client_datasets_random_seed=1 --client_epochs_per_round=1 --total_rounds=1200 --client_batch_size=4 --shakespeare_sequence_length=80 --client_optimizer=sgd --client_learning_rate=1 --server_optimizer=sgd --server_learning_rate=1 --server_sgd_momentum=0.0
+--task=experiments --clients_per_round=10 --client_datasets_random_seed=1 --client_epochs_per_round=1 --total_rounds=1200 --client_batch_size=4 --shakespeare_sequence_length=80 --client_optimizer=sgd --client_learning_rate=1 --server_optimizer=sgd --server_learning_rate=1 --server_sgd_momentum=0.0
 ```
 
 Additionally, set the shared output directory for all experiments using:

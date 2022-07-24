@@ -41,7 +41,7 @@ def pint_hist(fed_ds, counter, title):
     ds = fed_ds.create_tf_dataset_for_client(client_id)
     sizes.append(ds.reduce(tf.constant(0, tf.int64), counter).numpy())
 
-  # first values in shakespeare should be:
+  # first values in experiments should be:
   # [2450.0, 462.0, 1999.0, 1076.0, 891.0, 50.0, 663.0, 48.0, 31655.0, 4497.0]
 
   hist(sizes, title)
@@ -49,7 +49,7 @@ def pint_hist(fed_ds, counter, title):
 
 # datasets from LEAF https://arxiv.org/abs/1812.01097
 
-# shakespeare - next-character prediction
+# experiments - next-character prediction
 # =======================================
 # The data set consists of 715 users (characters of Shakespeare plays),
 # where each example corresponds to a contiguous set of lines spoken

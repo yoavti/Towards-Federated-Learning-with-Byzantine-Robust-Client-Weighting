@@ -42,7 +42,7 @@ from utils import training_loop
 from utils import utils_impl
 
 _SUPPORTED_TASKS = [
-    'cifar100', 'emnist_cr', 'emnist_ae', 'shakespeare', 'stackoverflow_nwp',
+    'cifar100', 'emnist_cr', 'emnist_ae', 'experiments', 'stackoverflow_nwp',
     'stackoverflow_lr'
 ]
 
@@ -184,7 +184,7 @@ def main(argv):
     Returns:
       A `tff.templates.IterativeProcess`.
     """
-    if FLAGS.task == 'shakespeare' or FLAGS.task == 'stackoverflow_nwp':
+    if FLAGS.task == 'experiments' or FLAGS.task == 'stackoverflow_nwp':
 
       def client_weight_fn(local_outputs):
         return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
@@ -216,7 +216,7 @@ def main(argv):
         task_spec, model=FLAGS.emnist_cr_model)
   elif FLAGS.task == 'emnist_ae':
     runner_spec = federated_emnist_ae.configure_training(task_spec)
-  elif FLAGS.task == 'shakespeare':
+  elif FLAGS.task == 'experiments':
     runner_spec = federated_shakespeare.configure_training(
         task_spec, sequence_length=FLAGS.shakespeare_sequence_length)
   elif FLAGS.task == 'stackoverflow_nwp':
