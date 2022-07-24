@@ -69,6 +69,8 @@ def configure_training(task_spec: training_specs.TaskSpec,
     task_spec: A `TaskSpec` class for creating federated training tasks.
     sequence_length: An int specifying the length of the character sequences
       used for prediction.
+    attack: A string specifying the Byzantine attack
+    num_byzantine: A string representing how many Byzantine clients are active
 
   Returns:
     A `RunnerSpec` containing attributes used for running the newly created
@@ -110,7 +112,6 @@ def configure_training(task_spec: training_specs.TaskSpec,
       build_train_dataset_from_client_id, iterative_process)
   client_ids_fn = tff.simulation.build_uniform_sampling_fn(
       shakespeare_train.client_ids,
-      # size=task_spec.clients_per_round,
       replace=False,
       random_seed=task_spec.client_datasets_random_seed)
 
@@ -120,13 +121,12 @@ def configure_training(task_spec: training_specs.TaskSpec,
 
   def client_sampling_fn_with_byzantine(round_num):
     client_ids = list(client_ids_fn(round_num, task_spec.clients_per_round))
-    # return [[client_id, is_byzantine_map[client_id]] for idx, client_id in enumerate(client_ids)]
-    # TODO current this assumes 10 client sampling and 1 byzantine per sample
-    byz_mask = np.zeros(10, dtype=np.bool)
+    byz_mask = np.zeros(task_spec.clients_per_round, dtype=np.bool)
     if attack != 'none':
       if num_byzantine == '10_percent':
-        byzIdx = np.random.randint(10)
-        byz_mask[byzIdx] = True
+        byzantines_per_round = int(0.1 * task_spec.clients_per_round)
+        byzantine_indices = np.random.choice(np.arange(task_spec.clients_per_round), byzantines_per_round, False)
+        byz_mask[byzantine_indices] = True
       elif num_byzantine == 'single':
         for idx, client_id in enumerate(client_ids):
           if client_id == the_single_byz_id:
@@ -138,7 +138,7 @@ def configure_training(task_spec: training_specs.TaskSpec,
 
   training_process.get_model_weights = iterative_process.get_model_weights
 
-  evaluate_fn = tff.learning.build_federated_evaluation(tff_model_fn)  # , use_experimental_simulation_loop=True)
+  evaluate_fn = tff.learning.build_federated_evaluation(tff_model_fn)
 
   def test_fn(state):
     return evaluate_fn(

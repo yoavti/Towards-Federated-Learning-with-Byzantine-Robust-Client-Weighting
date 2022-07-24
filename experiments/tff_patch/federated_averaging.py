@@ -57,8 +57,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
                model: model_lib.Model,
                optimizer: tf.keras.optimizers.Optimizer,
                client_weighting: Union[
-                   ClientWeighting,
-                   ClientWeightFnType] = ClientWeighting.NUM_EXAMPLES,
+                 ClientWeighting,
+                 ClientWeightFnType] = ClientWeighting.NUM_EXAMPLES,
                use_experimental_simulation_loop: bool = False,
                byzantine_client_weight: int = 1_000_000,
                attack: Optional[LocalAttack] = None):
@@ -83,15 +83,14 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
     self._optimizer = optimizer
     py_typecheck.check_type(self._model, model_utils.EnhancedModel)
 
-    if (not isinstance(client_weighting, ClientWeighting) and
-        not callable(client_weighting)):
+    if not isinstance(client_weighting, ClientWeighting) and not callable(client_weighting):
       raise TypeError(f'`client_weighting` must be either instance of '
                       f'`ClientWeighting` or callable. '
                       f'Found type {type(client_weighting)}.')
     self._client_weighting = client_weighting
 
     self._dataset_reduce_fn = dataset_reduce.build_dataset_reduce_fn(
-        use_experimental_simulation_loop)
+      use_experimental_simulation_loop)
     self._byzantine_client_weight = byzantine_client_weight
     self._attack = attack
 
@@ -119,14 +118,14 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
 
       if output.num_examples is None:
         return num_examples_sum + tf.shape(
-            output.predictions, out_type=tf.int64)[0]
+          output.predictions, out_type=tf.int64)[0]
       else:
         return num_examples_sum + tf.cast(output.num_examples, tf.int64)
 
     num_examples_sum = self._dataset_reduce_fn(
-        reduce_fn,
-        dataset,
-        initial_state_fn=lambda: tf.zeros(shape=[], dtype=tf.int64))
+      reduce_fn,
+      dataset,
+      initial_state_fn=lambda: tf.zeros(shape=[], dtype=tf.int64))
 
     weights_delta = tf.nest.map_structure(tf.subtract, model.weights.trainable,
                                           initial_weights.trainable)
@@ -140,7 +139,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
     # TODO(b/122071074): Consider moving this functionality into
     # tff.federated_mean?
     weights_delta, has_non_finite_delta = (
-        tensor_utils.zero_all_if_any_non_finite(weights_delta))
+      tensor_utils.zero_all_if_any_non_finite(weights_delta))
     # Zero out the weight if there are any non-finite values.
     if has_non_finite_delta > 0:
       # TODO(b/176171842): Zeroing has no effect with unweighted aggregation.
@@ -163,7 +162,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
                                         model_output, optimizer_output)
 
 
-DEFAULT_SERVER_OPTIMIZER_FN = lambda: tf.keras.optimizers.SGD(learning_rate=1.0)
+def default_server_optimizer_fn():
+  return tf.keras.optimizers.SGD(learning_rate=1.0)
 
 
 # TODO(b/170208719): remove `aggregation_process` after migration to
@@ -172,14 +172,14 @@ def build_federated_averaging_process(
     model_fn: Callable[[], model_lib.Model],
     client_optimizer_fn: Callable[[], tf.keras.optimizers.Optimizer],
     server_optimizer_fn: Callable[
-        [], tf.keras.optimizers.Optimizer] = DEFAULT_SERVER_OPTIMIZER_FN,
+      [], tf.keras.optimizers.Optimizer] = default_server_optimizer_fn,
     *,  # Require named (non-positional) parameters for the following kwargs:
     client_weighting: Optional[Union[ClientWeighting,
                                      ClientWeightFnType]] = None,
     broadcast_process: Optional[measured_process.MeasuredProcess] = None,
     aggregation_process: Optional[measured_process.MeasuredProcess] = None,
     model_update_aggregation_factory: Optional[
-        factory.WeightedAggregationFactory] = None,
+      factory.WeightedAggregationFactory] = None,
     use_experimental_simulation_loop: bool = False,
     byzantine_client_weight: int = 1_000_000,
     attack: Optional[LocalAttack] = None,
@@ -260,6 +260,8 @@ def build_federated_averaging_process(
         input dataset. An experimental reduce loop is used for simulation.
         It is currently necessary to set this flag to True for performant GPU
         simulations.
+    byzantine_client_weight: Number of samples each Byzantine client reports
+    attack: An optional `LocalAttack` that specifies which Byzantine attack takes place
 
   Returns:
     A `tff.templates.IterativeProcess`.
@@ -280,12 +282,12 @@ def build_federated_averaging_process(
                         use_experimental_simulation_loop, byzantine_client_weight, attack)
 
   iter_proc = optimizer_utils.build_model_delta_optimizer_process(
-      model_fn,
-      model_to_client_delta_fn=client_fed_avg,
-      server_optimizer_fn=server_optimizer_fn,
-      broadcast_process=broadcast_process,
-      aggregation_process=aggregation_process,
-      model_update_aggregation_factory=model_update_aggregation_factory)
+    model_fn,
+    model_to_client_delta_fn=client_fed_avg,
+    server_optimizer_fn=server_optimizer_fn,
+    broadcast_process=broadcast_process,
+    aggregation_process=aggregation_process,
+    model_update_aggregation_factory=model_update_aggregation_factory)
 
   server_state_type = iter_proc.state_type.member
 

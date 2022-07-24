@@ -74,7 +74,7 @@ class ClientOutput(object):
 class ClientDeltaFn(object, metaclass=abc.ABCMeta):
   """Represents a client computation that produces an update to a model."""
 
-  @abc.abstractproperty
+  @abc.abstractmethod
   def variables(self):
     """Returns all the variables of this object.
 
@@ -147,8 +147,7 @@ def state_with_new_model_weights(
   def assert_weight_lists_match(old_value, new_value):
     """Assert two flat lists of ndarrays or tensors match."""
     if isinstance(new_value, leaf_types) and isinstance(old_value, leaf_types):
-      if (old_value.dtype != new_value.dtype or
-          old_value.shape != new_value.shape):
+      if old_value.dtype != new_value.dtype or old_value.shape != new_value.shape:
         raise TypeError('Element is not the same tensor type. old '
                         f'({old_value.dtype}, {old_value.shape}) != '
                         f'new ({new_value.dtype}, {new_value.shape})')
@@ -193,14 +192,12 @@ def _apply_delta(
   grads_and_vars = tf.nest.map_structure(
       lambda x, v: (-1.0 * x, v), tf.nest.flatten(delta),
       tf.nest.flatten(model_variables.trainable))
-  # Note: this may create variables inside `optimizer`, for example if this is
-  # the first usage of Adam or momentum optmizers.
   optimizer.apply_gradients(grads_and_vars)
 
 
-def _eagerly_create_optimizer_variables(
-    *, model: model_lib.Model,
-    optimizer: tf.keras.optimizers.Optimizer) -> List[tf.Variable]:
+def _eagerly_create_optimizer_variables(*,
+                                        model: model_lib.Model,
+                                        optimizer: tf.keras.optimizers.Optimizer) -> List[tf.Variable]:
   """Forces eager construction of the optimizer variables.
 
   This code is needed both in `server_init` and `server_update` (to introduce
@@ -405,7 +402,7 @@ def _build_one_round_computation(
 
     Args:
       server_state: a `tff.learning.framework.ServerState` named tuple.
-      federated_dataset: a federated `tf.Dataset` with placement tff.CLIENTS.
+      federated_dataset_with_byzflag: a federated `tf.Dataset` with placement tff.CLIENTS.
 
     Returns:
       A tuple of updated `tff.learning.framework.ServerState` and the result of
@@ -632,8 +629,7 @@ def build_model_delta_optimizer_process(
         'signature (<state@S, input@S> -> <state@S, result@C, measurements@S>).'
         ' Got: {t}'.format(t=broadcast_process.next.type_signature))
 
-  if (model_update_aggregation_factory is not None and
-      aggregation_process is not None):
+  if model_update_aggregation_factory is not None and aggregation_process is not None:
     raise DisjointArgumentError(
         'Must specify only one of `model_update_aggregation_factory` and '
         '`AggregationProcess`.')
