@@ -178,7 +178,7 @@ def main(argv):
     if FLAGS.weight_preproc == 'ignore':
       def client_weight_fn(local_outputs):
         return tf.constant(1.0, tf.float32)
-    elif FLAGS.weight_preproc == 'uniform': # should be the same as ignore (just verifying)
+    elif FLAGS.weight_preproc == 'uniform':  # should be the same as ignore (just verifying)
       client_weight_fn = ClientWeighting.UNIFORM
 
     if FLAGS.aggregation == 'trimmed_mean':

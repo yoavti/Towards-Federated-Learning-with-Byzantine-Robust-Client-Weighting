@@ -69,6 +69,8 @@ def configure_training(task_spec: training_specs.TaskSpec,
     task_spec: A `TaskSpec` class for creating federated training tasks.
     sequence_length: An int specifying the length of the character sequences
       used for prediction.
+    attack: A string specifying the Byzantine attack
+    num_byzantine: A string representing how many Byzantine clients are active
 
   Returns:
     A `RunnerSpec` containing attributes used for running the newly created
@@ -136,7 +138,7 @@ def configure_training(task_spec: training_specs.TaskSpec,
 
   training_process.get_model_weights = iterative_process.get_model_weights
 
-  evaluate_fn = tff.learning.build_federated_evaluation(tff_model_fn)  # , use_experimental_simulation_loop=True)
+  evaluate_fn = tff.learning.build_federated_evaluation(tff_model_fn)
 
   def test_fn(state):
     return evaluate_fn(

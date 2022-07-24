@@ -17,12 +17,11 @@ from tensorflow_federated.python.common_libs import py_typecheck
 from tensorflow_federated.python.common_libs import structure
 from tensorflow_federated.python.core.api import computation_base
 from tensorflow_federated.python.core.api import computations
-# from tensorflow_federated.python.core.api import intrinsics
-# from tensorflow_federated.python.core.impl.types import placement_literals
 from tensorflow_federated.python.core.impl.types import type_analysis
 from tensorflow_federated.python.core.templates import iterative_process
 
 import tensorflow_federated as tff
+
 
 def compose_dataset_computation_with_computation(
     dataset_computation: computation_base.Computation,
@@ -85,10 +84,6 @@ def compose_dataset_computation_with_computation(
   py_typecheck.check_type(computation_body, computation_base.Computation)
 
   dataset_return_type = dataset_computation.type_signature.result
-  # if not dataset_return_type.is_sequence():
-  #   raise TypeError(
-  #       'Expected a `tff.SequenceType` to be returned from '
-  #       '`dataset_computation`; found {} instead.'.format(dataset_return_type))
   if dataset_computation.type_signature.parameter is None:
     raise TypeError('Can only construct a new iterative process if '
                     '`dataset_computation` accepts a non-None arg; the '
@@ -101,7 +96,6 @@ def compose_dataset_computation_with_computation(
     return t.is_federated() and t.member.is_assignable_from(dataset_return_type)
 
   if is_desired_federated_sequence(comp_body_param_type):
-    # Single argument that matches, we compose in a straightforward manner.
     new_param_type = tff.FederatedType(
         dataset_computation.type_signature.parameter,
         tff.CLIENTS)
@@ -226,11 +220,6 @@ def compose_dataset_computation_with_iterative_process(
   py_typecheck.check_type(dataset_computation, computation_base.Computation)
   py_typecheck.check_type(process, iterative_process.IterativeProcess)
 
-  dataset_return_type = dataset_computation.type_signature.result
-  # if not dataset_return_type.is_sequence():
-  #   raise TypeError(
-  #       'Expected a `tff.SequenceType` to be returned from '
-  #       '`dataset_computation`; found {} instead.'.format(dataset_return_type))
   if dataset_computation.type_signature.parameter is None:
     raise TypeError('Can only construct a new iterative process if '
                     '`dataset_computation` accepts a non-None arg; the '

@@ -58,6 +58,8 @@ def configure_training(
     num_layers: The number of stacked recurrent layers to use.
     shared_embedding: Boolean indicating whether to tie input and output
       embeddings.
+    attack: A string specifying the Byzantine attack
+    num_byzantine: A string representing how many Byzantine clients are active
 
   Returns:
     A `RunnerSpec` containing attributes used for running the newly created
