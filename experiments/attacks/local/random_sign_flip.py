@@ -8,6 +8,6 @@ class RandomSignFlipAttack(LocalAttack):
     self._mu = mu
     self._sigma = sigma
 
-  def attack(self, weights_delta):
+  def __call__(self, weights_delta):
     noise = random.gauss(self._mu, self._sigma)
     return tf.nest.map_structure(lambda _: _ * noise, weights_delta)

@@ -1,3 +1,3 @@
 class LocalAttack:
-  def attack(self, weights_delta):
+  def __call__(self, weights_delta):
     raise NotImplemented

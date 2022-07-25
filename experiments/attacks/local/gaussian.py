@@ -8,5 +8,5 @@ class GaussianAttack(LocalAttack):
     self._mu = mu
     self._sigma = sigma
 
-  def attack(self, weights_delta):
+  def __call__(self, weights_delta):
     return tf.nest.map_structure(lambda _: _ - _ + random.gauss(self._mu, self._sigma), weights_delta)
