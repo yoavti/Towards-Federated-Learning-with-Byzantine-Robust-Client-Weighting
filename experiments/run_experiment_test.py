@@ -21,7 +21,7 @@ from absl import app
 from absl import flags
 
 from experiments import run_experiment
-from experiments.run_experiment import SUPPORTED_TASKS, CLIENT_WEIGHTING, PREPROC_FUNCS, AGGREGATORS, ATTACKS
+from experiments.run_experiment import SUPPORTED_TASKS, CLIENT_WEIGHTING, PREPROC_FUNCS, AGGREGATORS, ATTACKS, BYZANTINES_PART_OF
 
 FLAGS = flags.FLAGS
 
@@ -34,12 +34,15 @@ FLAGS.server_learning_rate = 1.0
 FLAGS.server_sgd_momentum = 0.0
 
 
-def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean', attack='none'):
+def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean', attack='none', num_byzantine=0.1,
+                        byzantines_part_of='total'):
   print(task, weight_preproc, aggregation, attack)
   FLAGS.task = task
   FLAGS.weight_preproc = weight_preproc
   FLAGS.aggregation = aggregation
   FLAGS.attack = attack
+  FLAGS.num_byzantine = num_byzantine
+  FLAGS.byzantines_part_of = byzantines_part_of
   FLAGS.root_output_dir = tempfile.mkdtemp()
   try:
     app.run(run_experiment.main)
@@ -47,16 +50,15 @@ def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean',
     print(system_exit)
 
 
-class TrainerTest(unittest.TestCase):
-  def test_shakespeare_no_attack(self):
-    test_run_experiment('shakespeare')
-
+class RunExperimentTest(unittest.TestCase):
   def test_all_configurations(self):
-    for task, weight_preproc, aggregation, attack in product(SUPPORTED_TASKS,
-                                                             list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS),
-                                                             AGGREGATORS,
-                                                             list(ATTACKS)):
-      test_run_experiment(task, weight_preproc, aggregation, attack)
+    for task in SUPPORTED_TASKS:
+      for weight_preproc in list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS):
+        for aggregation in AGGREGATORS:
+          for attack in list(ATTACKS):
+            for num_byzantine in [0.1, 2.]:
+              for byzantines_part_of in BYZANTINES_PART_OF:
+                test_run_experiment(task, weight_preproc, aggregation, attack, num_byzantine, byzantines_part_of)
 
 
 if __name__ == '__main__':

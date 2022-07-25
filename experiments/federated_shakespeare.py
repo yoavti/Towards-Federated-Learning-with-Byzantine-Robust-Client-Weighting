@@ -57,8 +57,8 @@ def eval_metrics_builder():
 
 def configure_training(task_spec: training_specs.TaskSpec,
                        sequence_length: int = 80,
-                       attack: str = 'none',
-                       num_byzantine: str = '10_percent') -> training_specs.RunnerSpec:
+                       num_byzantine: float = 0.1,
+                       byzantines_part_of: str = 'total') -> training_specs.RunnerSpec:
   """Configures training for the Shakespeare next-character prediction task.
 
   This method will load and pre-process datasets and construct a model used for
@@ -69,15 +69,14 @@ def configure_training(task_spec: training_specs.TaskSpec,
     task_spec: A `TaskSpec` class for creating federated training tasks.
     sequence_length: An int specifying the length of the character sequences
       used for prediction.
-    attack: A string specifying the Byzantine attack
-    num_byzantine: A string representing how many Byzantine clients are active
+    num_byzantine: A float representing how many Byzantine clients are active
+    byzantines_part_of: A string representing whether num_byzantine is taken as part of
+      the total amount of clients or in each round
 
   Returns:
     A `RunnerSpec` containing attributes used for running the newly created
     federated task.
   """
-  ['10_percent', 'single'].index(num_byzantine)
-  ['none', 'sign_flip', 'constant', 'gaussian', 'random_sign_flip'].index(attack)  # delta_to_zero
 
   shakespeare_train, _ = tff.simulation.datasets.shakespeare.load_data()
   _, shakespeare_test = shakespeare_dataset.get_centralized_datasets(
@@ -115,22 +114,26 @@ def configure_training(task_spec: training_specs.TaskSpec,
       replace=False,
       random_seed=task_spec.client_datasets_random_seed)
 
-  if attack != 'none' and num_byzantine == 'single':
-    the_single_byz_id = shakespeare_train.client_ids[tf.random.uniform([], maxval=len(shakespeare_train.client_ids),
-                                                                       dtype=tf.int32)]
+  if num_byzantine < 1:
+    num_byzantine = num_byzantine * len(shakespeare_train.client_ids)
+
+  num_byzantine = int(num_byzantine)
+
+  if num_byzantine >= len(shakespeare_train.client_ids):
+    raise ValueError(f'num_byzantine is larger than the number of all clients. '
+                     f'num_byzantine = {num_byzantine}, '
+                     f'number of clients = {len(shakespeare_train.client_ids)}')
+
+  chosen_byz_ids = set(np.random.choice(shakespeare_train.client_ids, num_byzantine, False))
 
   def client_sampling_fn_with_byzantine(round_num):
     client_ids = list(client_ids_fn(round_num, task_spec.clients_per_round))
     byz_mask = np.zeros(task_spec.clients_per_round, dtype=np.bool)
-    if attack != 'none':
-      if num_byzantine == '10_percent':
-        byzantines_per_round = int(0.1 * task_spec.clients_per_round)
-        byzantine_indices = np.random.choice(np.arange(task_spec.clients_per_round), byzantines_per_round, False)
-        byz_mask[byzantine_indices] = True
-      elif num_byzantine == 'single':
-        for idx, client_id in enumerate(client_ids):
-          if client_id == the_single_byz_id:
-            byz_mask[idx] = True
+    if byzantines_part_of == 'total':
+      byzantine_indices = np.random.choice(np.arange(task_spec.clients_per_round), num_byzantine, False)
+      byz_mask[byzantine_indices] = True
+    elif byzantines_part_of == 'round':
+      byz_mask = np.array([client_id in chosen_byz_ids for client_id in client_ids])
 
     return list(zip(client_ids, byz_mask))
 
