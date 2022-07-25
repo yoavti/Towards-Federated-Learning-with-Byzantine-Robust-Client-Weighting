@@ -35,9 +35,12 @@ from experiments.numpy_aggr import NumpyAggrFactory
 from experiments.attacks.local import ConstantAttack, GaussianAttack, NoAttack, RandomSignFlipAttack, SignFlipAttack
 from google_tff_research.utils import training_loop, utils_impl
 
-_SUPPORTED_TASKS = [
-  'shakespeare', 'stackoverflow_nwp',
-]
+SUPPORTED_TASKS = ['shakespeare', 'stackoverflow_nwp']
+CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
+PREPROC_FUNCS = {'truncate': truncate, 'lp': lp}
+AGGREGATORS = ['mean', 'median', 'trimmed_mean']
+ATTACKS = {'none': NoAttack, 'sign_flip': SignFlipAttack, 'constant': ConstantAttack, 'gaussian': GaussianAttack,
+           'random_sign_flip': RandomSignFlipAttack}  # delta_to_zero
 
 with utils_impl.record_hparam_flags() as optimizer_flags:
   # Defining optimizer flags
@@ -69,23 +72,18 @@ with utils_impl.record_hparam_flags() as shared_flags:
                        'How often to checkpoint the global model.')
 
   # Parameters specific for our paper
-  flags.DEFINE_enum('weight_preproc', 'passthrough', ['passthrough', 'ignore', 'uniform', 'truncate', 'lp'],
+  flags.DEFINE_enum('weight_preproc', 'num_examples', list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS),
                     'What to do with the clients\' relative weights.')
-  # flags.DEFINE_float('weight_truncate_U', None, 'truncate threshold when weight_preproc is \'truncate\'')
 
-  flags.DEFINE_enum('aggregation', 'mean', ['mean', 'trimmed_mean', 'median'], 'select aggregation type to use')
+  flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
 
-  flags.DEFINE_enum('attack', 'none',
-                    ['none', 'sign_flip', 'constant', 'gaussian', 'random_sign_flip'],  # delta_to_zero
-                    'select attack type')
+  flags.DEFINE_enum('attack', 'none', list(ATTACKS), 'select attack type')
   flags.DEFINE_enum('num_byzantine', '10_percent', ['10_percent', 'single'], 'select the number of byzantine clients')
   flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'fake client weight byzantine client publish')
 
-preproc_funcs = {'truncate': truncate, 'lp': lp}
-
 with utils_impl.record_hparam_flags() as task_flags:
   # Task specification
-  flags.DEFINE_enum('task', None, _SUPPORTED_TASKS,
+  flags.DEFINE_enum('task', None, SUPPORTED_TASKS,
                     'Which task to perform federated training on.')
 
 with utils_impl.record_hparam_flags() as shakespeare_flags:
@@ -168,18 +166,13 @@ def main(argv):
     Returns:
       A `tff.templates.IterativeProcess`.
     """
-    if FLAGS.task == 'shakespeare' or FLAGS.task == 'stackoverflow_nwp':
+    client_weight_fn = None
+    if FLAGS.task in SUPPORTED_TASKS and FLAGS.weight_preproc == 'num_examples':
 
       def client_weight_fn(local_outputs):
         return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
-    else:
-      client_weight_fn = None
-
-    if FLAGS.weight_preproc == 'ignore':
-      def client_weight_fn(local_outputs):
-        return tf.constant(1.0, tf.float32)
-    elif FLAGS.weight_preproc == 'uniform':  # should be the same as ignore (just verifying)
-      client_weight_fn = ClientWeighting.UNIFORM
+    elif FLAGS.weight_preproc in CLIENT_WEIGHTING:
+      client_weight_fn = CLIENT_WEIGHTING[FLAGS.weight_preproc]
 
     if FLAGS.aggregation == 'trimmed_mean':
       inner_aggregator = functools.partial(trimmed_mean, beta=0.1)
@@ -188,10 +181,10 @@ def main(argv):
     else:
       inner_aggregator = mean
 
-    if FLAGS.weight_preproc in preproc_funcs:
+    if FLAGS.weight_preproc in PREPROC_FUNCS:
 
       def aggregate_with_preproc(points, weights):
-        return inner_aggregator(points, preproc_funcs[FLAGS.weight_preproc](weights))
+        return inner_aggregator(points, PREPROC_FUNCS[FLAGS.weight_preproc](weights))
 
       aggregator = NumpyAggrFactory(aggregate_with_preproc)
     else:
@@ -200,15 +193,7 @@ def main(argv):
       else:
         aggregator = NumpyAggrFactory(inner_aggregator)
 
-    attack = NoAttack()
-    if FLAGS.attack == 'constant':
-      attack = ConstantAttack()
-    if FLAGS.attack == 'gaussian':
-      attack = GaussianAttack()
-    if FLAGS.attack == 'random_sign_flip':
-      attack = RandomSignFlipAttack()
-    if FLAGS.attack == 'sign_flip':
-      attack = SignFlipAttack()
+    attack = ATTACKS[FLAGS.attack]()
 
     return tff_patch.build_federated_averaging_process(
       model_fn=model_fn,
@@ -248,7 +233,7 @@ def main(argv):
   else:
     raise ValueError(
       '--task flag {} is not supported, must be one of {}.'.format(
-        FLAGS.task, _SUPPORTED_TASKS))
+        FLAGS.task, SUPPORTED_TASKS))
 
   _write_hparam_flags()
 
