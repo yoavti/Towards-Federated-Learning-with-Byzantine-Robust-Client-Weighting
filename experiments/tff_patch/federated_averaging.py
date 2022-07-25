@@ -34,17 +34,12 @@ from tensorflow_federated.python.core.templates import iterative_process
 from tensorflow_federated.python.core.templates import measured_process
 from tensorflow_federated.python.learning import model as model_lib
 from tensorflow_federated.python.learning import model_utils
+from tensorflow_federated.python.learning import ClientWeighting
 from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
 from experiments.tff_patch import optimizer_utils
 from experiments.attacks.local.base import LocalAttack
-
-
-class ClientWeighting(enum.Enum):
-  """Enum for built-in methods for weighing clients."""
-  UNIFORM = 1
-  NUM_EXAMPLES = 2
 
 
 ClientWeightFnType = Callable[[Any], tf.Tensor]
