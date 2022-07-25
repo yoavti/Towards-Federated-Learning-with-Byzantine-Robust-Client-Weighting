@@ -51,6 +51,9 @@ class TrainerTest(unittest.TestCase):
   def test_shakespeare_no_attack(self):
     test_run_experiment('shakespeare')
 
+  def test_shakespeare_attack(self):
+    test_run_experiment('shakespeare', 'truncate', 'trimmed_mean', 'sign_flip')
+
   def test_all_configurations(self):
     for task, weight_preproc, aggregation, attack in product(SUPPORTED_TASKS,
                                                              list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS),
