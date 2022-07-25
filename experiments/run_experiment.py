@@ -41,6 +41,7 @@ PREPROC_FUNCS = {'truncate': truncate, 'lp': lp}
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
 ATTACKS = {'none': NoAttack, 'sign_flip': SignFlipAttack, 'constant': ConstantAttack, 'gaussian': GaussianAttack,
            'random_sign_flip': RandomSignFlipAttack}  # delta_to_zero
+BYZANTINES_PART_OF = ['total', 'round']
 
 with utils_impl.record_hparam_flags() as optimizer_flags:
   # Defining optimizer flags
@@ -78,10 +79,12 @@ with utils_impl.record_hparam_flags() as shared_flags:
   flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
 
   flags.DEFINE_enum('attack', 'none', list(ATTACKS), 'select attack type')
-  flags.DEFINE_enum('num_byzantine', '10_percent', ['10_percent', 'single'], 'select the number of byzantine clients')
-  flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'fake client weight byzantine client publish')
-  flags.DEFINE_float('alpha', 0.1, 'Byzantine proportion')
-  flags.DEFINE_float('alpha_star', 0.5, 'Byzantine weight proportion')
+  flags.DEFINE_float('num_byzantine', 0.1, 'select either the proportion or the number of byzantine clients', 0.0)
+  flags.DEFINE_enum('byzantines_part_of', 'total', BYZANTINES_PART_OF,
+                    'select whether num_clients are takes as part of the total amount of clients or in each round')
+  flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'select fake client weight byzantine client publish')
+  flags.DEFINE_float('alpha', 0.1, 'select Byzantine proportion')
+  flags.DEFINE_float('alpha_star', 0.5, 'select Byzantine weight proportion')
 
 with utils_impl.record_hparam_flags() as task_flags:
   # Task specification
@@ -180,6 +183,8 @@ def main(argv):
       inner_aggregator = functools.partial(trimmed_mean, beta=FLAGS.alpha)
     elif FLAGS.aggregation == 'median':
       inner_aggregator = median
+    elif FLAGS.aggregation == 'mean':
+      inner_aggregator = mean
     else:
       inner_aggregator = mean
 
@@ -219,12 +224,15 @@ def main(argv):
     clients_per_round=FLAGS.clients_per_round,
     client_datasets_random_seed=FLAGS.client_datasets_random_seed)
 
+  if FLAGS.num_byzantine >= 1. and not FLAGS.num_byzantine.is_integer():
+    raise ValueError('num_byzantine must either be a proportion (i.e. [0, 1)) or a full number')
+
   if FLAGS.task == 'shakespeare':
     runner_spec = federated_shakespeare.configure_training(
       task_spec,
       sequence_length=FLAGS.shakespeare_sequence_length,
-      attack=FLAGS.attack,
-      num_byzantine=FLAGS.num_byzantine)
+      num_byzantine=FLAGS.num_byzantine,
+      byzantines_part_of=FLAGS.num_byzantine)
   elif FLAGS.task == 'stackoverflow_nwp':
     runner_spec = federated_stackoverflow.configure_training(
       task_spec,
