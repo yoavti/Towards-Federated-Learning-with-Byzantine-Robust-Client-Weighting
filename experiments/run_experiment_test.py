@@ -15,34 +15,48 @@
 import tempfile
 import unittest
 
+from itertools import product
+
 from absl import app
 from absl import flags
 
 from experiments import run_experiment
+from experiments.run_experiment import SUPPORTED_TASKS, CLIENT_WEIGHTING, PREPROC_FUNCS, AGGREGATORS, ATTACKS
 
 FLAGS = flags.FLAGS
 
+FLAGS.experiment_name = 'test_experiment'
+FLAGS.total_rounds = 2
+FLAGS.client_optimizer = 'sgd'
+FLAGS.client_learning_rate = 0.01
+FLAGS.server_optimizer = 'sgd'
+FLAGS.server_learning_rate = 1.0
+FLAGS.server_sgd_momentum = 0.0
 
-def _set_common_flags():
+
+def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean', attack='none'):
+  print(task, weight_preproc, aggregation, attack)
+  FLAGS.task = task
+  FLAGS.weight_preproc = weight_preproc
+  FLAGS.aggregation = aggregation
+  FLAGS.attack = attack
   FLAGS.root_output_dir = tempfile.mkdtemp()
-  FLAGS.experiment_name = 'test_experiment'
-  FLAGS.total_rounds = 2
-  FLAGS.client_optimizer = 'sgd'
-  FLAGS.client_learning_rate = 0.01
-  FLAGS.server_optimizer = 'sgd'
-  FLAGS.server_learning_rate = 1.0
-  FLAGS.server_sgd_momentum = 0.0
+  try:
+    app.run(run_experiment.main)
+  except SystemExit as system_exit:
+    print(system_exit)
 
 
 class TrainerTest(unittest.TestCase):
-
   def test_shakespeare_no_attack(self):
-    _set_common_flags()
-    FLAGS.task = 'shakespeare'
-    try:
-      app.run(run_experiment.main)
-    except SystemExit as system_exit:
-      print(system_exit)
+    test_run_experiment('shakespeare')
+
+  def test_all_configurations(self):
+    for task, weight_preproc, aggregation, attack in product(SUPPORTED_TASKS,
+                                                             list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS),
+                                                             AGGREGATORS,
+                                                             list(ATTACKS)):
+      test_run_experiment(task, weight_preproc, aggregation, attack)
 
 
 if __name__ == '__main__':
