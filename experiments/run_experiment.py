@@ -80,6 +80,8 @@ with utils_impl.record_hparam_flags() as shared_flags:
   flags.DEFINE_enum('attack', 'none', list(ATTACKS), 'select attack type')
   flags.DEFINE_enum('num_byzantine', '10_percent', ['10_percent', 'single'], 'select the number of byzantine clients')
   flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'fake client weight byzantine client publish')
+  flags.DEFINE_float('alpha', 0.1, 'Byzantine proportion')
+  flags.DEFINE_float('alpha_star', 0.5, 'Byzantine weight proportion')
 
 with utils_impl.record_hparam_flags() as task_flags:
   # Task specification
@@ -175,7 +177,7 @@ def main(argv):
       client_weight_fn = CLIENT_WEIGHTING[FLAGS.weight_preproc]
 
     if FLAGS.aggregation == 'trimmed_mean':
-      inner_aggregator = functools.partial(trimmed_mean, beta=0.1)
+      inner_aggregator = functools.partial(trimmed_mean, beta=FLAGS.alpha)
     elif FLAGS.aggregation == 'median':
       inner_aggregator = median
     else:
@@ -184,7 +186,10 @@ def main(argv):
     if FLAGS.weight_preproc in PREPROC_FUNCS:
 
       def aggregate_with_preproc(points, weights):
-        return inner_aggregator(points, PREPROC_FUNCS[FLAGS.weight_preproc](weights))
+        return inner_aggregator(points,
+                                PREPROC_FUNCS[FLAGS.weight_preproc](weights,
+                                                                    alpha=FLAGS.alpha,
+                                                                    alpha_star=FLAGS.alpha_star))
 
       aggregator = NumpyAggrFactory(aggregate_with_preproc)
     else:
