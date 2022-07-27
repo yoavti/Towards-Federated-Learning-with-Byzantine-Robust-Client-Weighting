@@ -15,8 +15,6 @@
 import tempfile
 import unittest
 
-from itertools import product
-
 from absl import app
 from absl import flags
 
@@ -52,7 +50,7 @@ def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean',
 
 class RunExperimentTest(unittest.TestCase):
   def test_shakespeare_no_attack(self):
-    test_run_experiment('shakespeare')
+    test_run_experiment('shakespeare_character')
 
   def test_all_configurations(self):
     for task in SUPPORTED_TASKS:
