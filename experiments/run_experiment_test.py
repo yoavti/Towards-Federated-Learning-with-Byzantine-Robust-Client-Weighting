@@ -51,6 +51,9 @@ def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean',
 
 
 class RunExperimentTest(unittest.TestCase):
+  def test_shakespeare_no_attack(self):
+    test_run_experiment('shakespeare')
+
   def test_all_configurations(self):
     for task in SUPPORTED_TASKS:
       for weight_preproc in list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS):
