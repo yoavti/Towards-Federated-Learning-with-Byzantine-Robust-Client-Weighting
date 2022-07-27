@@ -210,9 +210,7 @@ def main(argv):
       client_optimizer_fn=client_optimizer_fn,
       server_optimizer_fn=server_optimizer_fn,
       client_weighting=client_weight_fn,
-      # broadcast_process=encoded_broadcast_process,
       model_update_aggregation_factory=aggregator,
-      # use_experimental_simulation_loop=True,
       byzantine_client_weight=FLAGS.byzantine_client_weight,
       attack=attack,
     )
@@ -232,7 +230,7 @@ def main(argv):
       task_spec,
       sequence_length=FLAGS.shakespeare_sequence_length,
       num_byzantine=FLAGS.num_byzantine,
-      byzantines_part_of=FLAGS.num_byzantine)
+      byzantines_part_of=FLAGS.byzantines_part_of)
   elif FLAGS.task == 'stackoverflow_nwp':
     runner_spec = federated_stackoverflow.configure_training(
       task_spec,
@@ -241,8 +239,8 @@ def main(argv):
       sequence_length=FLAGS.so_nwp_sequence_length,
       max_elements_per_user=FLAGS.so_nwp_max_elements_per_user,
       num_validation_examples=FLAGS.so_nwp_num_validation_examples,
-      attack=FLAGS.attack,
-      num_byzantine=FLAGS.num_byzantine)
+      num_byzantine=FLAGS.num_byzantine,
+      byzantines_part_of=FLAGS.byzantines_part_of)
   else:
     raise ValueError(
       '--task flag {} is not supported, must be one of {}.'.format(
