@@ -18,7 +18,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from google_tff_research.utils.datasets import stackoverflow_word_prediction
+from utils.datasets import stackoverflow_word_prediction
 
 TEST_DATA = collections.OrderedDict(
     creation_date=(['unused date']),
@@ -273,6 +273,8 @@ class CentralizedDatasetTest(tf.test.TestCase):
         return_value=sample_ds)
 
     mock_validation = mock.create_autospec(tff.simulation.datasets.ClientData)
+    mock_validation.create_tf_dataset_from_all_clients = mock.Mock(
+        return_value=sample_ds)
 
     mock_test = mock.create_autospec(tff.simulation.datasets.ClientData)
     mock_test.create_tf_dataset_from_all_clients = mock.Mock(
@@ -291,15 +293,11 @@ class CentralizedDatasetTest(tf.test.TestCase):
         max_sequence_length=20,
         num_oov_buckets=1)
 
-    # Assert the validation ClientData isn't used.
+    # Assert the datasets are created via create_tf_dataset_from_all_clients.
     mock_load_data.assert_called_once()
-    self.assertEmpty(mock_validation.mock_calls)
-
-    # Assert the validation ClientData isn't used, and the train and test
-    # are amalgamated into datasets single datasets over all clients.
-    mock_load_data.assert_called_once()
-    self.assertEmpty(mock_validation.mock_calls)
     self.assertEqual(mock_train.mock_calls,
+                     mock.call.create_tf_dataset_from_all_clients().call_list())
+    self.assertEqual(mock_validation.mock_calls,
                      mock.call.create_tf_dataset_from_all_clients().call_list())
     self.assertEqual(mock_test.mock_calls,
                      mock.call.create_tf_dataset_from_all_clients().call_list())

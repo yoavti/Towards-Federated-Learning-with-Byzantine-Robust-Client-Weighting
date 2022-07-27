@@ -17,7 +17,8 @@ import collections
 from absl.testing import parameterized
 import tensorflow as tf
 
-from google_tff_research.utils.datasets import cifar10_dataset
+from utils.datasets import cifar10_dataset
+
 
 TEST_DATA = collections.OrderedDict(
     image=([tf.zeros((32, 32, 3), dtype=tf.uint8)]),

@@ -18,7 +18,7 @@ from unittest import mock
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from google_tff_research.utils.datasets import shakespeare_dataset
+from utils.datasets import shakespeare_dataset
 
 
 class PreprocessFnTest(tf.test.TestCase):
@@ -97,7 +97,7 @@ class PreprocessFnTest(tf.test.TestCase):
         .format(expected_outputs))
 
 
-SHAKESPEARE_LOAD_DATA = 'tensorflow_federated.simulation.datasets.experiments.load_data'
+SHAKESPEARE_LOAD_DATA = 'tensorflow_federated.simulation.datasets.shakespeare.load_data'
 
 
 class FederatedDatasetTest(tf.test.TestCase):

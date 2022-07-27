@@ -17,7 +17,8 @@ from unittest import mock
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from google_tff_research.utils.datasets import stackoverflow_tag_prediction
+from utils.datasets import stackoverflow_tag_prediction
+
 
 TEST_DATA = collections.OrderedDict(
     creation_date=(['unused date']),

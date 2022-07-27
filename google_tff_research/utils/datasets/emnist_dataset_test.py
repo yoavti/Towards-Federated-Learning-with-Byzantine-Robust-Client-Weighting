@@ -18,7 +18,7 @@ from unittest import mock
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from google_tff_research.utils.datasets import emnist_dataset
+from utils.datasets import emnist_dataset
 
 NUM_ONLY_DIGITS_CLIENTS = 3383
 TOTAL_NUM_CLIENTS = 3400

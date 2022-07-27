@@ -19,7 +19,8 @@ from absl.testing import parameterized
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from google_tff_research.utils.datasets import cifar100_dataset
+from utils.datasets import cifar100_dataset
+
 
 TEST_DATA = collections.OrderedDict(
     coarse_label=([tf.constant(1, dtype=tf.int64)]),
