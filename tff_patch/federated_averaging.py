@@ -22,7 +22,6 @@ Communication-Efficient Learning of Deep Networks from Decentralized Data
 """
 
 import collections
-import enum
 from typing import Any, Callable, Optional, Union
 
 import tensorflow as tf
@@ -38,7 +37,7 @@ from tensorflow_federated.python.learning import ClientWeighting
 from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
-from experiments.tff_patch import optimizer_utils
+from tff_patch import optimizer_utils
 from experiments.attacks.local.base import LocalAttack
 
 

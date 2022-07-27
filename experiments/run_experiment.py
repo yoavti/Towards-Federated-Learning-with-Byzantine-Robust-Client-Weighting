@@ -30,7 +30,7 @@ from shared.truncate import truncate
 from shared.lp import lp
 from google_tff_research.optimization.shared import optimizer_utils, training_specs
 from experiments import federated_shakespeare, federated_stackoverflow
-import experiments.tff_patch as tff_patch
+import tff_patch as tff_patch
 from experiments.numpy_aggr import NumpyAggrFactory
 from experiments.attacks.local import ConstantAttack, GaussianAttack, NoAttack, RandomSignFlipAttack, SignFlipAttack
 from google_tff_research.utils import training_loop, utils_impl

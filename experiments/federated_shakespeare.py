@@ -18,7 +18,7 @@ import functools
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from experiments import tff_patch
+import tff_patch
 from google_tff_research.optimization.shared import training_specs, keras_metrics
 from google_tff_research.utils.datasets import shakespeare_dataset
 from google_tff_research.utils.models import shakespeare_models
