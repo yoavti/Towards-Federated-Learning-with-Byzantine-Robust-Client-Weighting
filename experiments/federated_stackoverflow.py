@@ -158,10 +158,10 @@ def configure_training(
   def client_sampling_fn_with_byzantine(round_num):
     client_ids = list(client_ids_fn(round_num, task_spec.clients_per_round))
     byz_mask = np.zeros(task_spec.clients_per_round, dtype=np.bool)
-    if byzantines_part_of == 'total':
+    if byzantines_part_of == 'round':
       byzantine_indices = np.random.choice(np.arange(task_spec.clients_per_round), num_byzantine, False)
       byz_mask[byzantine_indices] = True
-    elif byzantines_part_of == 'round':
+    elif byzantines_part_of == 'total':
       byz_mask = np.array([client_id in chosen_byz_ids for client_id in client_ids])
 
     return list(zip(client_ids, byz_mask))
