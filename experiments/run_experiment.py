@@ -15,29 +15,32 @@
 # limitations under the License.
 
 import functools
-import os.path
-from typing import Callable
+import os
 
-from absl import app
-from absl import flags
 import tensorflow as tf
 import tensorflow_federated as tff
+
+from typing import Callable
+
+from absl import app, flags
+
 from tensorflow_federated.python.learning import ClientWeighting
 
-from google_tff_research.utils import task_utils
 from simulation.baselines import ClientSpec
 
 from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate
 from shared.lp import lp
+
 from google_tff_research.optimization.shared import optimizer_utils, training_specs
-from experiments import federated_training
-import tff_patch as tff_patch
+from google_tff_research.utils import training_loop, utils_impl, task_utils
+
+from experiments.federated_training import configure_training
 from experiments.numpy_aggr import NumpyAggrFactory
 from experiments.attacks.local import ConstantAttack, GaussianAttack, NoAttack, RandomSignFlipAttack, SignFlipAttack
-from google_tff_research.utils import training_loop, utils_impl
 
-SUPPORTED_TASKS = ['shakespeare_character']
+from tff_patch import build_federated_averaging_process
+
 CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
 PREPROC_FUNCS = {'truncate': truncate, 'lp': lp}
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
@@ -137,7 +140,7 @@ def main(argv):
       A `tff.templates.IterativeProcess`.
     """
     client_weight_fn = None
-    if FLAGS.task == 'shakespeare_character' and FLAGS.weight_preproc == 'num_examples':
+    if FLAGS.task in ['shakespeare_character', 'stackoverflow_word'] and FLAGS.weight_preproc == 'num_examples':
 
       def client_weight_fn(local_outputs):
         return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
@@ -170,15 +173,13 @@ def main(argv):
 
     attack = ATTACKS[FLAGS.attack]()
 
-    return tff_patch.build_federated_averaging_process(
-      model_fn=model_fn,
-      client_optimizer_fn=client_optimizer_fn,
-      server_optimizer_fn=server_optimizer_fn,
-      client_weighting=client_weight_fn,
-      model_update_aggregation_factory=aggregator,
-      byzantine_client_weight=FLAGS.byzantine_client_weight,
-      attack=attack,
-    )
+    return build_federated_averaging_process(model_fn=model_fn,
+                                             client_optimizer_fn=client_optimizer_fn,
+                                             server_optimizer_fn=server_optimizer_fn,
+                                             client_weighting=client_weight_fn,
+                                             model_update_aggregation_factory=aggregator,
+                                             byzantine_client_weight=FLAGS.byzantine_client_weight,
+                                             attack=attack)
 
   task_spec = training_specs.TaskSpec(
     iterative_process_builder=iterative_process_builder,
@@ -190,15 +191,9 @@ def main(argv):
   if FLAGS.num_byzantine >= 1. and not FLAGS.num_byzantine.is_integer():
     raise ValueError('num_byzantine must either be a proportion (i.e. [0, 1)) or a full number')
 
-  if FLAGS.task == 'shakespeare_character':
-    runner_spec = federated_training.configure_training(
-      task_spec, task,
-      num_byzantine=FLAGS.num_byzantine,
-      byzantines_part_of=FLAGS.byzantines_part_of)
-  else:
-    raise ValueError(
-      '--task flag {} is not supported, must be one of {}.'.format(
-        FLAGS.task, SUPPORTED_TASKS))
+  runner_spec = configure_training(task_spec, task,
+                                   num_byzantine=FLAGS.num_byzantine,
+                                   byzantines_part_of=FLAGS.byzantines_part_of)
 
   _write_hparam_flags()
 

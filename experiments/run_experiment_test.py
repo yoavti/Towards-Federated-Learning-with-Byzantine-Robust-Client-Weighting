@@ -15,11 +15,11 @@
 import tempfile
 import unittest
 
-from absl import app
-from absl import flags
+from absl import app, flags
 
 from experiments import run_experiment
-from experiments.run_experiment import SUPPORTED_TASKS, CLIENT_WEIGHTING, PREPROC_FUNCS, AGGREGATORS, ATTACKS, BYZANTINES_PART_OF
+from experiments.run_experiment import CLIENT_WEIGHTING, PREPROC_FUNCS, AGGREGATORS, ATTACKS, BYZANTINES_PART_OF
+from google_tff_research.utils.task_utils import SUPPORTED_TASKS
 
 FLAGS = flags.FLAGS
 
