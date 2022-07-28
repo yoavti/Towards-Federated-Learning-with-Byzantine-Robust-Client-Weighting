@@ -14,13 +14,11 @@
 
 import unittest
 import numpy as np
-from experiments.attacks.local import ConstantAttack, GaussianAttack, NoAttack, RandomSignFlipAttack, SignFlipAttack
+from experiments.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
 
 
-ATTACKS = {'none': NoAttack,
-           'sign_flip': SignFlipAttack, 'constant': ConstantAttack,
-           'gaussian': GaussianAttack,
-           'random_sign_flip': RandomSignFlipAttack}
+ATTACKS = {'sign_flip': SignFlipAttack, 'constant': ConstantAttack,
+           'gaussian': GaussianAttack, 'random_sign_flip': RandomSignFlipAttack}
 
 
 def gen_rand_vec(dn=10):
@@ -28,18 +26,13 @@ def gen_rand_vec(dn=10):
 
 
 class LocalAttacksTest(unittest.TestCase):
-  def test_no_attack(self):
-    x = gen_rand_vec()
-    np.testing.assert_array_almost_equal(x, NoAttack()(x))
-
   def test_sign_flip(self):
-    x = gen_rand_vec()
-    np.testing.assert_array_almost_equal(-x, SignFlipAttack()(x))
+    v = gen_rand_vec()
+    np.testing.assert_array_almost_equal(-v, SignFlipAttack()(v))
 
   def test_constant(self):
     const = 100
-    x = gen_rand_vec()
-    np.testing.assert_array_almost_equal(const, ConstantAttack(const)(x))
+    np.testing.assert_array_almost_equal(const, ConstantAttack(const)(gen_rand_vec()))
 
 
 if __name__ == '__main__':

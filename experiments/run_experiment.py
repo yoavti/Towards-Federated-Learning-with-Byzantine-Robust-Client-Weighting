@@ -37,14 +37,14 @@ from google_tff_research.utils.optimizers import optimizer_utils
 
 from experiments.federated_training import configure_training
 from experiments.numpy_aggr import NumpyAggrFactory
-from experiments.attacks.local import ConstantAttack, GaussianAttack, NoAttack, RandomSignFlipAttack, SignFlipAttack
+from experiments.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
 
 from tff_patch import build_federated_averaging_process
 
 CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
 PREPROC_FUNCS = {'truncate': truncate, 'lp': lp}
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
-ATTACKS = {'none': NoAttack, 'sign_flip': SignFlipAttack, 'constant': ConstantAttack, 'gaussian': GaussianAttack,
+ATTACKS = {'sign_flip': SignFlipAttack, 'constant': ConstantAttack, 'gaussian': GaussianAttack,
            'random_sign_flip': RandomSignFlipAttack}  # delta_to_zero
 BYZANTINES_PART_OF = ['total', 'round']
 
@@ -83,7 +83,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
 
   flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
 
-  flags.DEFINE_enum('attack', 'none', list(ATTACKS), 'select attack type')
+  flags.DEFINE_enum('attack', 'sign_flip', list(ATTACKS), 'select attack type')
   flags.DEFINE_float('num_byzantine', 0.1, 'select either the proportion or the number of byzantine clients', 0.0)
   flags.DEFINE_enum('byzantines_part_of', 'total', BYZANTINES_PART_OF,
                     'select whether num_clients are takes as part of the total amount of clients or in each round')
