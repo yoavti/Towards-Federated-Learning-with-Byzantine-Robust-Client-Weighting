@@ -14,28 +14,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
 import functools
-import os.path
-from typing import Callable
+import os
 
-from absl import app
-from absl import flags
 import tensorflow as tf
 import tensorflow_federated as tff
+
+from typing import Callable
+
+from absl import app, flags
+
 from tensorflow_federated.python.learning import ClientWeighting
+
+from tensorflow_federated.python.simulation.baselines import ClientSpec
 
 from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate
 from shared.lp import lp
-from google_tff_research.optimization.shared import optimizer_utils, training_specs
-from experiments import federated_shakespeare, federated_stackoverflow
-import experiments.tff_patch as tff_patch
+
+from google_tff_research.optimization.shared import training_specs
+from google_tff_research.utils import training_loop, utils_impl, task_utils
+from google_tff_research.utils.optimizers import optimizer_utils
+
+from experiments.federated_training import configure_training
 from experiments.numpy_aggr import NumpyAggrFactory
 from experiments.attacks.local import ConstantAttack, GaussianAttack, NoAttack, RandomSignFlipAttack, SignFlipAttack
-from google_tff_research.utils import training_loop, utils_impl
 
-SUPPORTED_TASKS = ['shakespeare', 'stackoverflow_nwp']
+from tff_patch import build_federated_averaging_process
+
 CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
 PREPROC_FUNCS = {'truncate': truncate, 'lp': lp}
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
@@ -87,35 +93,9 @@ with utils_impl.record_hparam_flags() as shared_flags:
   flags.DEFINE_float('alpha_star', 0.5, 'select Byzantine weight proportion')
 
 with utils_impl.record_hparam_flags() as task_flags:
-  # Task specification
-  flags.DEFINE_enum('task', None, SUPPORTED_TASKS,
-                    'Which task to perform federated training on.')
-
-with utils_impl.record_hparam_flags() as shakespeare_flags:
-  # Shakespeare flags
-  flags.DEFINE_integer(
-    'shakespeare_sequence_length', 80,
-    'Length of character sequences to use for the RNN model.')
-
-with utils_impl.record_hparam_flags() as so_nwp_flags:
-  # Stack Overflow NWP flags
-  flags.DEFINE_integer('so_nwp_vocab_size', 10000, 'Size of vocab to use.')
-  flags.DEFINE_integer('so_nwp_num_oov_buckets', 1,
-                       'Number of out of vocabulary buckets.')
-  flags.DEFINE_integer('so_nwp_sequence_length', 20,
-                       'Max sequence length to use.')
-  flags.DEFINE_integer('so_nwp_max_elements_per_user', 1000, 'Max number of '
-                       'training sentences to use per user.')
-  flags.DEFINE_integer(
-      'so_nwp_num_validation_examples', 10000, 'Number of examples '
-      'to use from test set for per-round validation.')
+  task_utils.define_task_flags()
 
 FLAGS = flags.FLAGS
-
-TASK_FLAGS = collections.OrderedDict(
-  shakespeare=shakespeare_flags,
-  stackoverflow_nwp=so_nwp_flags,
-)
 
 
 def _write_hparam_flags():
@@ -129,11 +109,8 @@ def _write_hparam_flags():
   hparam_dict.update(opt_flag_dict)
 
   # Update with task-specific flags.
-  task_name = FLAGS.task
-  if task_name in TASK_FLAGS:
-    task_hparam_dict = utils_impl.lookup_flag_values(TASK_FLAGS[task_name])
-    hparam_dict.update(task_hparam_dict)
-
+  task_flag_dict = utils_impl.lookup_flag_values(task_flags)
+  hparam_dict.update(task_flag_dict)
   results_dir = os.path.join(FLAGS.root_output_dir, 'results',
                              FLAGS.experiment_name)
   utils_impl.create_directory_if_not_exists(results_dir)
@@ -146,19 +123,11 @@ def main(argv):
     raise app.UsageError('Expected no command-line arguments, '
                          'got: {}'.format(argv))
 
-  # If GPU is provided, TFF will by default use the first GPU like TF. The
-  # following lines will configure TFF to use multi-GPUs and distribute client
-  # computation on the GPUs. Note that we put server computatoin on CPU to avoid
-  # potential out of memory issue when a large number of clients is sampled per
-  # round. The client devices below can be an empty list when no GPU could be
-  # detected by TF.
-  # client_devices = tf.config.list_logical_devices('GPU')
-  # server_device = tf.config.list_logical_devices('CPU')[0]
-  # tff.backends.native.set_local_execution_context(
-  #     server_tf_device=server_device, client_tf_devices=client_devices)
-
   client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
   server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
+
+  train_client_spec = ClientSpec(num_epochs=FLAGS.client_epochs_per_round, batch_size=FLAGS.client_batch_size)
+  task = task_utils.create_task_from_flags(train_client_spec)
 
   def iterative_process_builder(
           model_fn: Callable[[],
@@ -172,7 +141,7 @@ def main(argv):
       A `tff.templates.IterativeProcess`.
     """
     client_weight_fn = None
-    if FLAGS.task in SUPPORTED_TASKS and FLAGS.weight_preproc == 'num_examples':
+    if FLAGS.task in ['shakespeare_character', 'stackoverflow_word'] and FLAGS.weight_preproc == 'num_examples':
 
       def client_weight_fn(local_outputs):
         return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
@@ -205,15 +174,13 @@ def main(argv):
 
     attack = ATTACKS[FLAGS.attack]()
 
-    return tff_patch.build_federated_averaging_process(
-      model_fn=model_fn,
-      client_optimizer_fn=client_optimizer_fn,
-      server_optimizer_fn=server_optimizer_fn,
-      client_weighting=client_weight_fn,
-      model_update_aggregation_factory=aggregator,
-      byzantine_client_weight=FLAGS.byzantine_client_weight,
-      attack=attack,
-    )
+    return build_federated_averaging_process(model_fn=model_fn,
+                                             client_optimizer_fn=client_optimizer_fn,
+                                             server_optimizer_fn=server_optimizer_fn,
+                                             client_weighting=client_weight_fn,
+                                             model_update_aggregation_factory=aggregator,
+                                             byzantine_client_weight=FLAGS.byzantine_client_weight,
+                                             attack=attack)
 
   task_spec = training_specs.TaskSpec(
     iterative_process_builder=iterative_process_builder,
@@ -225,26 +192,9 @@ def main(argv):
   if FLAGS.num_byzantine >= 1. and not FLAGS.num_byzantine.is_integer():
     raise ValueError('num_byzantine must either be a proportion (i.e. [0, 1)) or a full number')
 
-  if FLAGS.task == 'shakespeare':
-    runner_spec = federated_shakespeare.configure_training(
-      task_spec,
-      sequence_length=FLAGS.shakespeare_sequence_length,
-      num_byzantine=FLAGS.num_byzantine,
-      byzantines_part_of=FLAGS.byzantines_part_of)
-  elif FLAGS.task == 'stackoverflow_nwp':
-    runner_spec = federated_stackoverflow.configure_training(
-      task_spec,
-      vocab_size=FLAGS.so_nwp_vocab_size,
-      num_oov_buckets=FLAGS.so_nwp_num_oov_buckets,
-      sequence_length=FLAGS.so_nwp_sequence_length,
-      max_elements_per_user=FLAGS.so_nwp_max_elements_per_user,
-      num_validation_examples=FLAGS.so_nwp_num_validation_examples,
-      num_byzantine=FLAGS.num_byzantine,
-      byzantines_part_of=FLAGS.byzantines_part_of)
-  else:
-    raise ValueError(
-      '--task flag {} is not supported, must be one of {}.'.format(
-        FLAGS.task, SUPPORTED_TASKS))
+  runner_spec = configure_training(task_spec, task,
+                                   num_byzantine=FLAGS.num_byzantine,
+                                   byzantines_part_of=FLAGS.byzantines_part_of)
 
   _write_hparam_flags()
 
