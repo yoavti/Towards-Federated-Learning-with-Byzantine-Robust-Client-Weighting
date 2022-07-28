@@ -31,7 +31,7 @@ from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate
 from shared.lp import lp
 from google_tff_research.optimization.shared import optimizer_utils, training_specs
-from experiments import federated_shakespeare
+from experiments import federated_training
 import tff_patch as tff_patch
 from experiments.numpy_aggr import NumpyAggrFactory
 from experiments.attacks.local import ConstantAttack, GaussianAttack, NoAttack, RandomSignFlipAttack, SignFlipAttack
@@ -191,7 +191,7 @@ def main(argv):
     raise ValueError('num_byzantine must either be a proportion (i.e. [0, 1)) or a full number')
 
   if FLAGS.task == 'shakespeare_character':
-    runner_spec = federated_shakespeare.configure_training(
+    runner_spec = federated_training.configure_training(
       task_spec, task,
       num_byzantine=FLAGS.num_byzantine,
       byzantines_part_of=FLAGS.byzantines_part_of)

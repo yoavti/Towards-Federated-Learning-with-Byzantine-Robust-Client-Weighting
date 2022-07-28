@@ -13,48 +13,14 @@
 # limitations under the License.
 """Federated Shakespeare next character prediction library using TFF."""
 
-import functools
-
+import numpy as np
 import tensorflow as tf
 import tensorflow_federated as tff
 
 from simulation.baselines import BaselineTask
 
-import tff_patch
-from google_tff_research.optimization.shared import training_specs, keras_metrics
-from google_tff_research.utils.datasets import shakespeare_dataset
-from google_tff_research.utils.models import shakespeare_models
-import numpy as np
-
-# Vocabulary with OOV ID, zero for the padding, and BOS, EOS IDs.
-VOCAB_SIZE = len(shakespeare_dataset.CHAR_VOCAB) + 4
-
-
-def create_shakespeare_model(sequence_length):
-  """Constructs a `tf.keras.Model` to train."""
-  return shakespeare_models.create_recurrent_model(
-      vocab_size=VOCAB_SIZE, sequence_length=sequence_length)
-
-
-def metrics_builder():
-  """Returns a `list` of `tf.keras.metric.Metric` objects."""
-  pad_token, _, _, _ = shakespeare_dataset.get_special_tokens()
-
-  return [
-      keras_metrics.NumBatchesCounter(),
-      keras_metrics.NumExamplesCounter(),
-      keras_metrics.NumTokensCounter(masked_tokens=[pad_token]),
-      keras_metrics.MaskedCategoricalAccuracy(masked_tokens=[pad_token]),
-  ]
-
-
-def eval_metrics_builder():
-  pad_token, _, _, _ = shakespeare_dataset.get_special_tokens()
-
-  return [
-      tf.keras.metrics.SparseCategoricalCrossentropy(),
-      keras_metrics.MaskedCategoricalAccuracy(masked_tokens=[pad_token]),
-  ]
+from tff_patch import compose_dataset_computation_with_iterative_process
+from google_tff_research.optimization.shared import training_specs
 
 
 def configure_training(task_spec: training_specs.TaskSpec,
@@ -92,7 +58,7 @@ def configure_training(task_spec: training_specs.TaskSpec,
     client_dataset = train_data.dataset_computation(client_id)
     return client_dataset, byzflag
 
-  training_process = tff_patch.compose_dataset_computation_with_iterative_process(
+  training_process = compose_dataset_computation_with_iterative_process(
       build_train_dataset_from_client_id, iterative_process)
   client_ids = train_data.client_ids
   client_ids_fn = tff.simulation.build_uniform_sampling_fn(client_ids, replace=False,
