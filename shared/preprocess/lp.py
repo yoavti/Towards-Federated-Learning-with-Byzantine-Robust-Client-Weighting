@@ -1,6 +1,6 @@
 from ortools.linear_solver.pywraplp import Solver
 import numpy as np
-from shared.utils import EPSILON, trunc_helpers
+from shared.preprocess.utils import EPSILON, trunc_helpers
 
 
 def lp(N, *, alpha=0.1, alpha_star=0.5):

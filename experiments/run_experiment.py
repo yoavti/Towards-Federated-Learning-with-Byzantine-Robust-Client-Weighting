@@ -29,8 +29,7 @@ from tensorflow_federated.python.learning import ClientWeighting
 from tensorflow_federated.python.simulation.baselines import ClientSpec
 
 from shared.aggregators import trimmed_mean, median, mean
-from shared.truncate import truncate
-from shared.lp import lp
+from shared.preprocess import lp, truncate
 
 from google_tff_research.optimization.shared import training_specs
 from google_tff_research.utils import training_loop, utils_impl, task_utils
