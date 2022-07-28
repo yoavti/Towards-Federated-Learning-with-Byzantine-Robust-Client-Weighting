@@ -14,11 +14,7 @@
 
 import unittest
 import numpy as np
-from experiments.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
-
-
-ATTACKS = {'sign_flip': SignFlipAttack, 'constant': ConstantAttack,
-           'gaussian': GaussianAttack, 'random_sign_flip': RandomSignFlipAttack}
+from experiments.attacks.local import ConstantAttack, SignFlipAttack
 
 
 def gen_rand_vec(dn=10):

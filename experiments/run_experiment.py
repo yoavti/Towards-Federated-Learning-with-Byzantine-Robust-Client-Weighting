@@ -29,7 +29,7 @@ from tensorflow_federated.python.learning import ClientWeighting
 from tensorflow_federated.python.simulation.baselines import ClientSpec
 
 from shared.aggregators import trimmed_mean, median, mean
-from shared.preprocess import lp, truncate
+from shared.preprocess import PREPROC_FUNCS
 
 from google_tff_research.optimization.shared import training_specs
 from google_tff_research.utils import training_loop, utils_impl, task_utils
@@ -37,15 +37,12 @@ from google_tff_research.utils.optimizers import optimizer_utils
 
 from experiments.federated_training import configure_training
 from experiments.numpy_aggr import NumpyAggrFactory
-from experiments.attacks.local import ConstantAttack, GaussianAttack, RandomSignFlipAttack, SignFlipAttack
+from experiments.attacks.local import ATTACKS
 
 from tff_patch import build_federated_averaging_process
 
 CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
-PREPROC_FUNCS = {'truncate': truncate, 'lp': lp}
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
-ATTACKS = {'sign_flip': SignFlipAttack, 'constant': ConstantAttack, 'gaussian': GaussianAttack,
-           'random_sign_flip': RandomSignFlipAttack}  # delta_to_zero
 BYZANTINES_PART_OF = ['total', 'round']
 
 with utils_impl.record_hparam_flags() as optimizer_flags:
