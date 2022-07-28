@@ -193,7 +193,6 @@ def main(argv):
   if FLAGS.task == 'shakespeare_character':
     runner_spec = federated_shakespeare.configure_training(
       task_spec, task,
-      sequence_length=FLAGS.shakespeare_character_sequence_length,
       num_byzantine=FLAGS.num_byzantine,
       byzantines_part_of=FLAGS.byzantines_part_of)
   else:
