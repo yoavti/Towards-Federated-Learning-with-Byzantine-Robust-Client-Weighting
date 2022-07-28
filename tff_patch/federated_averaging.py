@@ -160,8 +160,6 @@ def default_server_optimizer_fn():
   return tf.keras.optimizers.SGD(learning_rate=1.0)
 
 
-# TODO(b/170208719): remove `aggregation_process` after migration to
-# `model_update_aggregation_factory`.
 def build_federated_averaging_process(
     model_fn: Callable[[], model_lib.Model],
     client_optimizer_fn: Callable[[], tf.keras.optimizers.Optimizer],
@@ -171,7 +169,6 @@ def build_federated_averaging_process(
     client_weighting: Optional[Union[ClientWeighting,
                                      ClientWeightFnType]] = None,
     broadcast_process: Optional[measured_process.MeasuredProcess] = None,
-    aggregation_process: Optional[measured_process.MeasuredProcess] = None,
     model_update_aggregation_factory: Optional[
       factory.WeightedAggregationFactory] = None,
     use_experimental_simulation_loop: bool = False,
@@ -240,10 +237,6 @@ def build_federated_averaging_process(
       `(input_values@SERVER -> output_values@CLIENT)`. If set to default None,
       the server model is broadcast to the clients using the default
       tff.federated_broadcast.
-    aggregation_process: a `tff.templates.MeasuredProcess` that aggregates the
-      model updates on the clients back to the server. It must support the
-      signature `({input_values}@CLIENTS-> output_values@SERVER)`. Must be
-      `None` if `model_update_aggregation_factory` is not `None.`
     model_update_aggregation_factory: An optional
       `tff.aggregators.WeightedAggregationFactory` or
       `tff.aggregators.UnweightedAggregationFactory` that constructs
@@ -280,7 +273,6 @@ def build_federated_averaging_process(
     model_to_client_delta_fn=client_fed_avg,
     server_optimizer_fn=server_optimizer_fn,
     broadcast_process=broadcast_process,
-    aggregation_process=aggregation_process,
     model_update_aggregation_factory=model_update_aggregation_factory)
 
   server_state_type = iter_proc.state_type.member
