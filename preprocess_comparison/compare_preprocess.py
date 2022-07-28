@@ -2,22 +2,19 @@ from absl import app, flags
 
 from preprocess_comparison.comparison_utils import plot_weights, available_metrics
 from preprocess_comparison.load import dataset_modules, get_client_weights
-from shared.truncate import truncate
-from shared.lp import lp
-from shared.utils import is_valid_solution, maximal_weight_proportion
+from shared.preprocess import PREPROC_FUNCS
+from shared.preprocess.utils import is_valid_solution, maximal_weight_proportion
 from google_tff_research.utils import utils_impl
 
 from pprint import PrettyPrinter
 
 pp = PrettyPrinter()
 
-available_preprocess = {'truncate': truncate, 'lp': lp}
-
 
 with utils_impl.record_hparam_flags() as comparison_flags:
   flags.DEFINE_enum('dataset', 'emnist', list(dataset_modules), 'Which dataset to take weights from.')
   flags.DEFINE_integer('limit_count', None, 'Number of weights to take from dataset.')
-  flags.DEFINE_multi_enum('preprocess_funcs', list(available_preprocess), list(available_preprocess),
+  flags.DEFINE_multi_enum('preprocess_funcs', list(PREPROC_FUNCS), list(PREPROC_FUNCS),
                           'What to do with the clients\' relative weights.')
   flags.DEFINE_float('alpha', 0.1, 'Byzantine proportion.')
   flags.DEFINE_float('alpha_star', 0.5, 'Byzantine weight proportion.')
@@ -60,7 +57,7 @@ def main(_):
   # loading client weights
   weights = get_client_weights(FLAGS.dataset, FLAGS.limit_count)
   # applying different preprocess procedures
-  selected_preprocess = {name: available_preprocess[name] for name in FLAGS.preprocess_funcs}
+  selected_preprocess = {name: PREPROC_FUNCS[name] for name in FLAGS.preprocess_funcs}
   named_new_weights = {name: preprocess(weights, alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
                        for name, preprocess in selected_preprocess.items()}
   # comparing the outputs
