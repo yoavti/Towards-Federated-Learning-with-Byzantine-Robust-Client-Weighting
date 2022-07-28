@@ -119,15 +119,10 @@ def main(argv):
     raise app.UsageError('Expected no command-line arguments, '
                          'got: {}'.format(argv))
 
-  client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
-  server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
-
   train_client_spec = ClientSpec(num_epochs=FLAGS.client_epochs_per_round, batch_size=FLAGS.client_batch_size)
   task = task_utils.create_task_from_flags(train_client_spec)
 
-  def iterative_process_builder(
-          model_fn: Callable[[],
-                             tff.learning.Model]) -> tff.templates.IterativeProcess:
+  def iterative_process_builder(model_fn: Callable[[], tff.learning.Model]) -> tff.templates.IterativeProcess:
     """Creates an iterative process using a given TFF `model_fn`.
 
     Args:
@@ -136,6 +131,9 @@ def main(argv):
     Returns:
       A `tff.templates.IterativeProcess`.
     """
+    client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
+    server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
+
     client_weight_fn = None
     if FLAGS.task in ['shakespeare_character', 'stackoverflow_word'] and FLAGS.weight_preproc == 'num_examples':
 
@@ -144,22 +142,19 @@ def main(argv):
     elif FLAGS.weight_preproc in CLIENT_WEIGHTING:
       client_weight_fn = CLIENT_WEIGHTING[FLAGS.weight_preproc]
 
-    if FLAGS.aggregation == 'trimmed_mean':
-      inner_aggregator = functools.partial(trimmed_mean, beta=FLAGS.alpha)
-    elif FLAGS.aggregation == 'median':
-      inner_aggregator = median
-    elif FLAGS.aggregation == 'mean':
-      inner_aggregator = mean
-    else:
-      inner_aggregator = mean
+    inner_aggregator = mean
+    inner_aggregators = {'trimmed_mean': functools.partial(trimmed_mean, beta=FLAGS.alpha),
+                         'median': median,
+                         'mean': mean}
+    if FLAGS.aggregation in inner_aggregators:
+      inner_aggregator = inner_aggregators[FLAGS.aggregation]
 
     if FLAGS.weight_preproc in PREPROC_FUNCS:
+      preproc_func = PREPROC_FUNCS[FLAGS.weight_preproc]
 
       def aggregate_with_preproc(points, weights):
-        return inner_aggregator(points,
-                                PREPROC_FUNCS[FLAGS.weight_preproc](weights,
-                                                                    alpha=FLAGS.alpha,
-                                                                    alpha_star=FLAGS.alpha_star))
+        weights = preproc_func(weights, alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
+        return inner_aggregator(points, weights)
 
       aggregator = NumpyAggrFactory(aggregate_with_preproc)
     else:
@@ -168,7 +163,8 @@ def main(argv):
       else:
         aggregator = NumpyAggrFactory(inner_aggregator)
 
-    attack = ATTACKS[FLAGS.attack]()
+    attack_constructor = ATTACKS[FLAGS.attack]
+    attack = attack_constructor()
 
     return build_federated_averaging_process(model_fn=model_fn,
                                              client_optimizer_fn=client_optimizer_fn,
