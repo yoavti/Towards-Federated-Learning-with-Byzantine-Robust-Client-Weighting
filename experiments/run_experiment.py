@@ -32,8 +32,9 @@ from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate
 from shared.lp import lp
 
-from google_tff_research.optimization.shared import optimizer_utils, training_specs
+from google_tff_research.optimization.shared import training_specs
 from google_tff_research.utils import training_loop, utils_impl, task_utils
+from google_tff_research.utils.optimizers import optimizer_utils
 
 from experiments.federated_training import configure_training
 from experiments.numpy_aggr import NumpyAggrFactory
