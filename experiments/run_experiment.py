@@ -25,6 +25,7 @@ import tensorflow_federated as tff
 from tensorflow_federated.python.learning import ClientWeighting
 
 from google_tff_research.utils import task_utils
+from simulation.baselines import ClientSpec
 
 from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate
@@ -121,6 +122,9 @@ def main(argv):
   client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
   server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
 
+  train_client_spec = ClientSpec(num_epochs=FLAGS.client_epochs_per_round, batch_size=FLAGS.client_batch_size)
+  task = task_utils.create_task_from_flags(train_client_spec)
+
   def iterative_process_builder(
           model_fn: Callable[[],
                              tff.learning.Model]) -> tff.templates.IterativeProcess:
@@ -133,7 +137,7 @@ def main(argv):
       A `tff.templates.IterativeProcess`.
     """
     client_weight_fn = None
-    if FLAGS.task in SUPPORTED_TASKS and FLAGS.weight_preproc == 'num_examples':
+    if FLAGS.task == 'shakespeare_character' and FLAGS.weight_preproc == 'num_examples':
 
       def client_weight_fn(local_outputs):
         return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
@@ -188,7 +192,7 @@ def main(argv):
 
   if FLAGS.task == 'shakespeare_character':
     runner_spec = federated_shakespeare.configure_training(
-      task_spec,
+      task_spec, task,
       sequence_length=FLAGS.shakespeare_character_sequence_length,
       num_byzantine=FLAGS.num_byzantine,
       byzantines_part_of=FLAGS.byzantines_part_of)
