@@ -43,6 +43,7 @@ from tff_patch import build_federated_averaging_process
 
 CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
+BYZANTINES_PART_OF = ['total', 'round']
 
 with utils_impl.record_hparam_flags() as optimizer_flags:
   # Defining optimizer flags
@@ -81,7 +82,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
 
   flags.DEFINE_enum('attack', 'sign_flip', list(ATTACKS), 'select attack type')
   flags.DEFINE_float('num_byzantine', 0.1, 'select either the proportion or the number of byzantine clients', 0.0)
-  flags.DEFINE_enum('byzantines_part_of', 'total', training_specs.BYZANTINES_PART_OF,
+  flags.DEFINE_enum('byzantines_part_of', 'total', BYZANTINES_PART_OF,
                     'select whether num_clients are takes as part of the total amount of clients or in each round')
   flags.DEFINE_integer('byzantine_client_weight', 1_000_000, 'select fake client weight byzantine client publish')
   flags.DEFINE_float('alpha', 0.1, 'select Byzantine proportion')
