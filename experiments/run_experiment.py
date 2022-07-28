@@ -26,7 +26,7 @@ from absl import app, flags
 
 from tensorflow_federated.python.learning import ClientWeighting
 
-from simulation.baselines import ClientSpec
+from tensorflow_federated.python.simulation.baselines import ClientSpec
 
 from shared.aggregators import trimmed_mean, median, mean
 from shared.truncate import truncate

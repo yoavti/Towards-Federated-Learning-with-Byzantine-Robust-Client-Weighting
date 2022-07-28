@@ -17,7 +17,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_federated as tff
 
-from simulation.baselines import BaselineTask
+from tensorflow_federated.python.simulation.baselines import BaselineTask
 
 from tff_patch import compose_dataset_computation_with_iterative_process
 from google_tff_research.optimization.shared import training_specs
