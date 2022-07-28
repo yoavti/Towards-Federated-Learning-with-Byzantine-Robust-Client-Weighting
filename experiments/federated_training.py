@@ -24,7 +24,7 @@ from google_tff_research.optimization.shared import training_specs
 
 
 def configure_training(task_spec: training_specs.TaskSpec, task: BaselineTask) -> training_specs.RunnerSpec:
-  """Configures training for the Shakespeare next-character prediction task.
+  """Configures training.
 
   This method will load and pre-process datasets and construct a model used for
   the task. It then uses `iterative_process_builder` to create an iterative
@@ -39,13 +39,17 @@ def configure_training(task_spec: training_specs.TaskSpec, task: BaselineTask) -
     federated task.
   """
 
+  # data
   train_data = task.datasets.train_data.preprocess(task.datasets.train_preprocess_fn)
   test_data = task.datasets.get_centralized_test_data()
 
+  # model
   model_fn = task.model_fn
 
+  # training process
   iterative_process = task_spec.iterative_process_builder(model_fn)
 
+  # client dataset fn
   @tff.tf_computation((tf.string, tf.bool))
   def build_train_dataset_from_client_id(client_id_with_byzflag):
     client_id, byzflag = client_id_with_byzflag
@@ -54,9 +58,11 @@ def configure_training(task_spec: training_specs.TaskSpec, task: BaselineTask) -
 
   training_process = compose_dataset_computation_with_iterative_process(
       build_train_dataset_from_client_id, iterative_process)
+  training_process.get_model_weights = iterative_process.get_model_weights
+
   client_ids = train_data.client_ids
-  client_ids_fn = tff.simulation.build_uniform_sampling_fn(client_ids, replace=False,
-                                                           random_seed=task_spec.client_datasets_random_seed)
+  client_ids_fn = tff.simulation.build_uniform_sampling_fn(
+    client_ids, replace=False, random_seed=task_spec.client_datasets_random_seed)
 
   num_byzantine = task_spec.num_byzantine
 
@@ -65,10 +71,14 @@ def configure_training(task_spec: training_specs.TaskSpec, task: BaselineTask) -
 
   num_byzantine = int(num_byzantine)
 
-  if num_byzantine >= len(client_ids):
+  if task_spec.byzantines_part_of == 'total' and num_byzantine >= len(client_ids):
     raise ValueError(f'num_byzantine is larger than the number of all clients. '
                      f'num_byzantine = {num_byzantine}, '
                      f'number of clients = {len(client_ids)}')
+  if task_spec.byzantines_part_of == 'round' and num_byzantine >= task_spec.clients_per_round:
+    raise ValueError(f'num_byzantine is larger than the number of clients per round. '
+                     f'num_byzantine = {num_byzantine}, '
+                     f'clients per round = {task_spec.clients_per_round}')
 
   chosen_byz_ids = set(np.random.choice(client_ids, num_byzantine, False))
 
@@ -83,23 +93,20 @@ def configure_training(task_spec: training_specs.TaskSpec, task: BaselineTask) -
 
     return list(zip(chosen_client_ids, byz_mask))
 
-  client_sampling_fn = client_sampling_fn_with_byzantine
-
-  training_process.get_model_weights = iterative_process.get_model_weights
-
+  # validation and test fns
   evaluate_fn = tff.learning.build_federated_evaluation(model_fn)
 
   def test_fn(state):
     return evaluate_fn(
-        iterative_process.get_model_weights(state), [test_data])
+        training_process.get_model_weights(state), [test_data])
 
   def validation_fn(state, round_num):
     del round_num
     return evaluate_fn(
-        iterative_process.get_model_weights(state), [test_data])
+        training_process.get_model_weights(state), [test_data])
 
   return training_specs.RunnerSpec(
       iterative_process=training_process,
-      client_datasets_fn=client_sampling_fn,
+      client_datasets_fn=client_sampling_fn_with_byzantine,
       validation_fn=validation_fn,
       test_fn=test_fn)
