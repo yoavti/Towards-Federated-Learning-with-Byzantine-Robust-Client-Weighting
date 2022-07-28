@@ -16,7 +16,6 @@
 from typing import Any, Callable, Dict, List, Optional
 
 import attr
-import tensorflow as tf
 import tensorflow_federated as tff
 
 ModelFnType = Callable[[], tff.learning.Model]
