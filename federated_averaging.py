@@ -39,6 +39,7 @@ from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
 from tff_patch import optimizer_utils
+from experiments.attacks.local.base import LocalAttack
 
 
 ClientWeightFnType = Callable[[Any], tf.Tensor]
@@ -54,7 +55,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
       client_weighting: Union[client_weight_lib.ClientWeightType,
                               ClientWeightFnType] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
       use_experimental_simulation_loop: bool = False,
-      byzantine_client_weight: int = 1_000_000):
+      byzantine_client_weight: int = 1_000_000,
+      attack: Optional[LocalAttack] = None):
     """Creates the client computation for Federated Averaging.
 
     Note: All variable creation required for the client computation (e.g. model
@@ -71,6 +73,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
       use_experimental_simulation_loop: Controls the reduce loop function for
         input dataset. An experimental reduce loop is used for simulation.
       byzantine_client_weight: Number of samples each Byzantine client reports.
+      attack: An optional `LocalAttack` that specifies which Byzantine attack takes place.
     """
     py_typecheck.check_type(model, model_lib.Model)
     self._model = model_utils.enhance(model)
@@ -83,6 +86,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
 
     self._dataset_reduce_fn = dataset_reduce.build_dataset_reduce_fn(use_experimental_simulation_loop)
     self._byzantine_client_weight = byzantine_client_weight
+    self._attack = attack
 
   @property
   def variables(self):
@@ -122,7 +126,8 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
 
     if byzflag:
       # delta to zero attack
-      weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
+      # weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
+      weights_delta = self._attack(weights_delta)
 
     # TODO(b/122071074): Consider moving this functionality into
     # tff.federated_mean?
@@ -168,7 +173,8 @@ def build_federated_averaging_process(
     model_update_aggregation_factory: Optional[
         factory.WeightedAggregationFactory] = None,
     use_experimental_simulation_loop: bool = False,
-    byzantine_client_weight: int = 1_000_000
+    byzantine_client_weight: int = 1_000_000,
+    attack: Optional[LocalAttack] = None
 ) -> iterative_process.IterativeProcess:
   """Builds an iterative process that performs federated averaging.
 
@@ -253,6 +259,7 @@ def build_federated_averaging_process(
         It is currently necessary to set this flag to True for performant GPU
         simulations.
     byzantine_client_weight: Number of samples each Byzantine client reports.
+    attack: An optional `LocalAttack` that specifies which Byzantine attack takes place
 
   Returns:
     A `tff.templates.IterativeProcess`.
@@ -282,7 +289,7 @@ def build_federated_averaging_process(
 
   def client_fed_avg(model_fn: Callable[[], model_lib.Model]) -> ClientFedAvg:
     return ClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting,
-                        use_experimental_simulation_loop, byzantine_client_weight)
+                        use_experimental_simulation_loop, byzantine_client_weight, attack)
 
   iter_proc = optimizer_utils.build_model_delta_optimizer_process(
       model_fn,
