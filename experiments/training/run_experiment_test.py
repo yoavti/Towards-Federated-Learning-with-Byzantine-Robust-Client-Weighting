@@ -56,7 +56,7 @@ class RunExperimentTest(unittest.TestCase):
 
   def test_all_configurations(self):
     for task in SUPPORTED_TASKS:
-      for weight_preproc in list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS):
+      for weight_preproc in CLIENT_WEIGHTING + list(PREPROC_FUNCS):
         for aggregation in AGGREGATORS:
           for attack in list(ATTACKS):
             for num_byzantine in [0.1, 2.]:
