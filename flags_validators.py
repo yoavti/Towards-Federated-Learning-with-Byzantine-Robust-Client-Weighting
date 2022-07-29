@@ -20,12 +20,6 @@ def create_or_validator(*validators):
   return ret
 
 
-def create_and_validator(*validators):
-  def ret(value):
-    return all(validator(value) for validator in validators)
-  return ret
-
-
 def create_optional_validator(validator):
   def ret(value):
     return value is None or validator(value)
