@@ -35,7 +35,7 @@ FLAGS.server_sgd_momentum = 0.0
 
 
 def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean', attack='sign_flip', num_byzantine=0.1,
-                        byzantines_part_of='total'):
+                        byzantines_part_of='round'):
   print(task, weight_preproc, aggregation, attack)
   FLAGS.task = task
   FLAGS.weight_preproc = weight_preproc
