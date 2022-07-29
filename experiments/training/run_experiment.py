@@ -28,7 +28,7 @@ from tensorflow_federated.python.simulation.baselines import ClientSpec
 
 from shared.google_tff_research.utils import training_loop, utils_impl, task_utils
 from shared.google_tff_research.utils.optimizers import optimizer_utils
-from shared.preprocess import PREPROC_FUNCS
+from shared.preprocess import PREPROC_TRANSFORMS
 from shared.aggregators import trimmed_mean, median, mean
 from shared.flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
 
@@ -69,7 +69,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
                        'How often to checkpoint the global model.')
 
   # Parameters specific for our paper
-  flags.DEFINE_enum('weight_preproc', 'num_examples', CLIENT_WEIGHTING + list(PREPROC_FUNCS),
+  flags.DEFINE_enum('weight_preproc', 'num_examples', CLIENT_WEIGHTING + list(PREPROC_TRANSFORMS),
                     'What to do with the clients\' relative weights.')
 
   flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
@@ -97,13 +97,6 @@ flags.register_validator('num_byzantine', create_or_validator(check_proportion, 
 flags.register_validator('byzantine_client_weight', check_non_negative)
 flags.register_validator('alpha', check_proportion)
 flags.register_validator('alpha_star', check_proportion)
-
-
-@flags.multi_flags_validator(['clients_per_round', 'num_byzantine', 'byzantines_part_of'])
-def check_round_num_byzantines(values):
-  if values['byzantines_part_of'] == 'round':
-    return values['num_byzantine'] <= values['clients_per_round']
-  return True
 
 
 flags.mark_flags_as_required(['experiment_name', 'task'])
@@ -160,13 +153,19 @@ def configure_inner_aggregator():
   return inner_aggregator
 
 
-def configure_aggregator():
+def configure_aggregator(train_data):
   inner_aggregator = configure_inner_aggregator()
-  if FLAGS.weight_preproc in PREPROC_FUNCS:
-    preproc_func = PREPROC_FUNCS[FLAGS.weight_preproc]
+  if FLAGS.weight_preproc in PREPROC_TRANSFORMS:
+    preproc_constructor = PREPROC_TRANSFORMS[FLAGS.weight_preproc]
+    preproc_transform = preproc_constructor(alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
+    if FLAGS.byzantines_part_of == 'total':
+      preproc_transform.fit(train_data.datasets())
 
     def aggregate_with_preproc(points, weights):
-      weights = preproc_func(weights, alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
+      if FLAGS.byzantines_part_of == 'total':
+        weights = preproc_transform.transform(weights)
+      elif FLAGS.byzantines_part_of == 'round':
+        weights = preproc_transform.fit_transform(weights)
       return inner_aggregator(points, weights)
 
     aggregator = NumpyAggrFactory(aggregate_with_preproc)
@@ -188,7 +187,7 @@ def configure_iterative_process(model_fn, train_data):
   client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
   server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
   client_weight_fn = configure_client_weight_fn()
-  aggregator = configure_aggregator()
+  aggregator = configure_aggregator(train_data)
   attack = configure_attack()
   iterative_process = build_federated_averaging_process(model_fn=model_fn,
                                                         client_optimizer_fn=client_optimizer_fn,
@@ -211,14 +210,16 @@ def configure_iterative_process(model_fn, train_data):
 
 
 def configure_num_byzantine(client_ids):
+  max_sizes = {'total': len(client_ids), 'round': FLAGS.clients_per_round}
   num_byzantine = FLAGS.num_byzantine
+  max_size = max_sizes[FLAGS.byzantines_part_of]
   if num_byzantine < 1:
-    num_byzantine = num_byzantine * len(client_ids)
+    num_byzantine = num_byzantine * max_size
   num_byzantine = int(num_byzantine)
-  if FLAGS.byzantines_part_of == 'total' and num_byzantine >= len(client_ids):
-    raise ValueError(f'num_byzantine is larger than the number of all clients. '
+  if num_byzantine > max_size:
+    raise ValueError(f'num_byzantine is larger than the number of clients. '
                      f'num_byzantine = {num_byzantine}, '
-                     f'number of clients = {len(client_ids)}')
+                     f'number of clients = {max_size}')
   return num_byzantine
 
 
