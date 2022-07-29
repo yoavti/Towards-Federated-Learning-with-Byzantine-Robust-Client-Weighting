@@ -27,7 +27,7 @@ from tensorflow_federated.python.learning import ClientWeighting
 
 from tensorflow_federated.python.simulation.baselines import ClientSpec
 
-from flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator, create_and_validator
+from flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
 
 from shared.aggregators import trimmed_mean, median, mean
 from shared.preprocess import PREPROC_FUNCS
@@ -96,16 +96,18 @@ flags.register_validator('clients_per_round', check_positive)
 flags.register_validator('total_rounds', check_positive)
 flags.register_validator('rounds_per_eval', check_positive)
 flags.register_validator('rounds_per_checkpoint', check_positive)
-flags.register_validator(
-  'num_byzantine',
-  create_and_validator(
-    check_non_negative,
-    create_or_validator(
-      check_proportion,
-      check_integer)))
+flags.register_validator('num_byzantine', check_non_negative)
+flags.register_validator('num_byzantine', create_or_validator(check_proportion, check_integer))
 flags.register_validator('byzantine_client_weight', check_non_negative)
 flags.register_validator('alpha', check_proportion)
 flags.register_validator('alpha_star', check_proportion)
+
+
+@flags.multi_flags_validator(['clients_per_round', 'num_byzantine', 'byzantines_part_of'])
+def check_round_num_byzantines(values):
+  if values['byzantines_part_of'] == 'round':
+    return values['num_byzantine'] <= values['clients_per_round']
+  return True
 
 
 flags.mark_flags_as_required(['experiment_name', 'task'])
@@ -133,20 +135,16 @@ def _write_hparam_flags():
   utils_impl.atomic_write_series_to_csv(hparam_dict, hparam_file)
 
 
-def main(argv):
-  if len(argv) > 1:
-    raise app.UsageError('Expected no command-line arguments, '
-                         'got: {}'.format(argv))
-
+def configure_task():
   train_client_spec = ClientSpec(num_epochs=FLAGS.client_epochs_per_round, batch_size=FLAGS.client_batch_size)
   task = task_utils.create_task_from_flags(train_client_spec)
   model_fn = task.model_fn
   train_data = task.datasets.train_data.preprocess(task.datasets.train_preprocess_fn)
   test_data = task.datasets.get_centralized_test_data()
+  return model_fn, train_data, test_data
 
-  client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
-  server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
 
+def configure_client_weight_fn():
   client_weight_fn = None
   if FLAGS.task in ['shakespeare_character', 'stackoverflow_word'] and FLAGS.weight_preproc == 'num_examples':
 
@@ -154,14 +152,21 @@ def main(argv):
       return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
   elif FLAGS.weight_preproc in CLIENT_WEIGHTING:
     client_weight_fn = CLIENT_WEIGHTING[FLAGS.weight_preproc]
+  return client_weight_fn
 
+
+def configure_inner_aggregator():
   inner_aggregator = mean
   inner_aggregators = {'trimmed_mean': functools.partial(trimmed_mean, beta=FLAGS.alpha),
                        'median': median,
                        'mean': mean}
   if FLAGS.aggregation in inner_aggregators:
     inner_aggregator = inner_aggregators[FLAGS.aggregation]
+  return inner_aggregator
 
+
+def configure_aggregator():
+  inner_aggregator = configure_inner_aggregator()
   if FLAGS.weight_preproc in PREPROC_FUNCS:
     preproc_func = PREPROC_FUNCS[FLAGS.weight_preproc]
 
@@ -175,10 +180,21 @@ def main(argv):
       aggregator = None  # defaults to reduce mean
     else:
       aggregator = NumpyAggrFactory(inner_aggregator)
+  return aggregator
 
+
+def configure_attack():
   attack_constructor = ATTACKS[FLAGS.attack]
   attack = attack_constructor()
+  return attack
 
+
+def configure_iterative_process(model_fn, train_data):
+  client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
+  server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
+  client_weight_fn = configure_client_weight_fn()
+  aggregator = configure_aggregator()
+  attack = configure_attack()
   iterative_process = build_federated_averaging_process(model_fn=model_fn,
                                                         client_optimizer_fn=client_optimizer_fn,
                                                         server_optimizer_fn=server_optimizer_fn,
@@ -196,27 +212,27 @@ def main(argv):
   training_process = compose_dataset_computation_with_iterative_process(
     build_train_dataset_from_client_id, iterative_process)
   training_process.get_model_weights = iterative_process.get_model_weights
+  return training_process
 
-  client_ids = train_data.client_ids
-  client_ids_fn = tff.simulation.build_uniform_sampling_fn(
-    client_ids, replace=False, random_seed=FLAGS.client_datasets_random_seed)
 
+def configure_num_byzantine(client_ids):
   num_byzantine = FLAGS.num_byzantine
-
   if num_byzantine < 1:
     num_byzantine = num_byzantine * len(client_ids)
-
   num_byzantine = int(num_byzantine)
-
   if FLAGS.byzantines_part_of == 'total' and num_byzantine >= len(client_ids):
     raise ValueError(f'num_byzantine is larger than the number of all clients. '
                      f'num_byzantine = {num_byzantine}, '
                      f'number of clients = {len(client_ids)}')
-  if FLAGS.byzantines_part_of == 'round' and num_byzantine >= FLAGS.clients_per_round:
-    raise ValueError(f'num_byzantine is larger than the number of clients per round. '
-                     f'num_byzantine = {num_byzantine}, '
-                     f'clients per round = {FLAGS.clients_per_round}')
+  return num_byzantine
 
+
+def configure_client_datasets_fn(train_data):
+  client_ids = train_data.client_ids
+  client_ids_fn = tff.simulation.build_uniform_sampling_fn(
+    client_ids, replace=False, random_seed=FLAGS.client_datasets_random_seed)
+
+  num_byzantine = configure_num_byzantine(client_ids)
   chosen_byz_ids = set(np.random.choice(client_ids, num_byzantine, False))
 
   def client_sampling_fn_with_byzantine(round_num):
@@ -229,23 +245,40 @@ def main(argv):
       byz_mask = np.array([client_id in chosen_byz_ids for client_id in chosen_client_ids], dtype=np.bool)
 
     return list(zip(chosen_client_ids, byz_mask))
+  return client_sampling_fn_with_byzantine
 
+
+def configure_evaluation_fns(model_fn, test_data, get_model_weights):
   evaluate_fn = tff.learning.build_federated_evaluation(model_fn)
 
   def test_fn(state):
-    return evaluate_fn(
-      training_process.get_model_weights(state), [test_data])
+    return evaluate_fn(get_model_weights(state), [test_data])
 
   def validation_fn(state, round_num):
     del round_num
-    return evaluate_fn(
-      training_process.get_model_weights(state), [test_data])
+    return evaluate_fn(get_model_weights(state), [test_data])
+
+  return validation_fn, test_fn
+
+
+def main(argv):
+  if len(argv) > 1:
+    raise app.UsageError('Expected no command-line arguments, '
+                         'got: {}'.format(argv))
+
+  model_fn, train_data, test_data = configure_task()
+
+  training_process = configure_iterative_process(model_fn, train_data)
+
+  client_datasets_fn = configure_client_datasets_fn(train_data)
+
+  validation_fn, test_fn = configure_evaluation_fns(model_fn, test_data, training_process.get_model_weights)
 
   _write_hparam_flags()
 
   training_loop.run(
     iterative_process=training_process,
-    client_datasets_fn=client_sampling_fn_with_byzantine,
+    client_datasets_fn=client_datasets_fn,
     validation_fn=validation_fn,
     test_fn=test_fn,
     total_rounds=FLAGS.total_rounds,
