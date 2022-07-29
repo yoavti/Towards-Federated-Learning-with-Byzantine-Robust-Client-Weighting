@@ -29,7 +29,7 @@ import tensorflow as tf
 from tensorflow_federated.python.aggregators import factory
 from tensorflow_federated.python.common_libs import py_typecheck
 from tensorflow_federated.python.core.api import computations
-from tensorflow_federated.python.core.templates import iterative_process, measured_process
+from tensorflow_federated.python.core.templates import iterative_process
 from tensorflow_federated.python.learning import model as model_lib
 from tensorflow_federated.python.learning import model_utils, ClientWeighting
 from tensorflow_federated.python.learning.framework import dataset_reduce
@@ -240,9 +240,6 @@ def build_federated_averaging_process(
   Returns:
     A `tff.templates.IterativeProcess`.
   """
-  py_typecheck.check_callable(model_fn)
-  py_typecheck.check_callable(client_optimizer_fn)
-  py_typecheck.check_callable(server_optimizer_fn)
 
   if isinstance(model_update_aggregation_factory,
                 factory.UnweightedAggregationFactory):
