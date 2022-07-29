@@ -548,7 +548,6 @@ def build_model_delta_optimizer_process(
                                        ClientDeltaFn],
     server_optimizer_fn: _OptimizerConstructor,
     *,
-    aggregation_process: Optional[measured_process.MeasuredProcess] = None,
     model_update_aggregation_factory: Optional[
         factory.AggregationFactory] = None,
 ) -> iterative_process.IterativeProcess:
@@ -567,10 +566,6 @@ def build_model_delta_optimizer_process(
     server_optimizer_fn: A no-arg function that returns a `tf.Optimizer`. The
       `apply_gradients` method of this optimizer is used to apply client updates
       to the server model.
-    aggregation_process: A `tff.templates.MeasuredProcess` that aggregates the
-      model updates on the clients back to the server. It must support the
-      signature `({input_values}@CLIENTS-> output_values@SERVER)`. Must be
-      `None` if `model_update_aggregation_factory` is not `None.`
     model_update_aggregation_factory: An optional
       `tff.aggregators.WeightedAggregationFactory` that constructs
       `tff.templates.AggregationProcess` for aggregating the client model
@@ -593,40 +588,27 @@ def build_model_delta_optimizer_process(
 
   broadcast_process = build_stateless_broadcaster(model_weights_type=model_weights_type)
 
-  if model_update_aggregation_factory is not None and aggregation_process is not None:
-    raise DisjointArgumentError(
-        'Must specify only one of `model_update_aggregation_factory` and '
-        '`AggregationProcess`.')
-
-  if aggregation_process is None:
-    if model_update_aggregation_factory is None:
-      model_update_aggregation_factory = mean.MeanFactory()
-    py_typecheck.check_type(model_update_aggregation_factory,
-                            factory.AggregationFactory.__args__)
-    if isinstance(model_update_aggregation_factory,
-                  factory.WeightedAggregationFactory):
-      aggregation_process = model_update_aggregation_factory.create(
-          model_weights_type.trainable,
-          tff.TensorType(tf.float32))
-    else:
-      aggregation_process = model_update_aggregation_factory.create(
-          model_weights_type.trainable)
-    process_signature = aggregation_process.next.type_signature
-    input_client_value_type = process_signature.parameter[1]
-    result_server_value_type = process_signature.result[1]
-    if input_client_value_type.member != result_server_value_type.member:
-      raise TypeError('`model_update_aggregation_factory` does not produce a '
-                      'compatible `AggregationProcess`. The processes must '
-                      'retain the type structure of the inputs on the '
-                      f'server, but got {input_client_value_type.member} != '
-                      f'{result_server_value_type.member}.')
+  if model_update_aggregation_factory is None:
+    model_update_aggregation_factory = mean.MeanFactory()
+  py_typecheck.check_type(model_update_aggregation_factory,
+                          factory.AggregationFactory.__args__)
+  if isinstance(model_update_aggregation_factory,
+                factory.WeightedAggregationFactory):
+    aggregation_process = model_update_aggregation_factory.create(
+        model_weights_type.trainable,
+        tff.TensorType(tf.float32))
   else:
-    next_num_args = len(aggregation_process.next.type_signature.parameter)
-    if next_num_args not in [2, 3]:
-      raise ValueError(
-          f'`next` function of `aggregation_process` must take two (for '
-          f'unweighted aggregation) or three (for weighted aggregation) '
-          f'arguments. Found {next_num_args}.')
+    aggregation_process = model_update_aggregation_factory.create(
+        model_weights_type.trainable)
+  process_signature = aggregation_process.next.type_signature
+  input_client_value_type = process_signature.parameter[1]
+  result_server_value_type = process_signature.result[1]
+  if input_client_value_type.member != result_server_value_type.member:
+    raise TypeError('`model_update_aggregation_factory` does not produce a '
+                    'compatible `AggregationProcess`. The processes must '
+                    'retain the type structure of the inputs on the '
+                    f'server, but got {input_client_value_type.member} != '
+                    f'{result_server_value_type.member}.')
 
   if not _is_valid_model_update_aggregation_process(aggregation_process):
     raise ProcessTypeError(
