@@ -13,8 +13,7 @@ dataset_modules = {'cifar100': tff.simulation.datasets.cifar100,
 
 def load_dataset(name):
     module = dataset_modules[name]
-    cache_dir = os.path.join('preprocess_comparison', name, 'cache')
-    return module.load_data(cache_dir=cache_dir)[0]
+    return module.load_data()[0]
 
 
 def get_client_weights(name, limit_count=None):
