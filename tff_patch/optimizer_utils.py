@@ -21,14 +21,11 @@ import attr
 import numpy as np
 import tensorflow as tf
 
-from tensorflow_federated.python.aggregators import factory
-from tensorflow_federated.python.aggregators import mean
+from tensorflow_federated.python.aggregators import factory, mean
 from tensorflow_federated.python.common_libs import py_typecheck
-from tensorflow_federated.python.core.api import computation_base
-from tensorflow_federated.python.core.api import computations
+from tensorflow_federated.python.core.api import computation_base, computations
 from tensorflow_federated.python.core.impl.types import type_conversions
-from tensorflow_federated.python.core.templates import iterative_process
-from tensorflow_federated.python.core.templates import measured_process
+from tensorflow_federated.python.core.templates import iterative_process, measured_process
 from tensorflow_federated.python.learning import model as model_lib
 from tensorflow_federated.python.learning import model_utils
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
@@ -53,22 +50,16 @@ class DisjointArgumentError(Exception):
 
 @attr.s(eq=False, frozen=True)
 class ClientOutput(object):
-  """Structure for outputs returned from clients during federated optimization.
-
-  Attributes:
-    weights_delta: A dictionary of updates to the model's trainable variables.
-    weights_delta_weight: Weight to use in a weighted mean when aggregating
-      `weights_delta`.
-    model_output: A structure matching
-      `tff.learning.Model.report_local_outputs`, reflecting the results of
-      training on the input dataset.
-    optimizer_output: Additional metrics or other outputs defined by the
-      optimizer.
-  """
+  """Structure for outputs returned from clients during federated optimization."""
   weights_delta = attr.ib()
+  """A dictionary of updates to the model's trainable variables."""
   weights_delta_weight = attr.ib()
+  """Weight to use in a weighted mean when aggregating `weights_delta`."""
   model_output = attr.ib()
+  """A structure matching `tff.learning.Model.report_local_outputs`, 
+  reflecting the results of training on the input dataset."""
   optimizer_output = attr.ib(default=None)
+  """Additional metrics or other outputs defined by the optimizer."""
 
 
 class ClientDeltaFn(object, metaclass=abc.ABCMeta):
@@ -107,19 +98,15 @@ class ClientDeltaFn(object, metaclass=abc.ABCMeta):
 
 @attr.s(eq=False, frozen=True)
 class ServerState(object):
-  """Represents the state of the server carried between rounds.
-
-  Attributes:
-    model: a `ModelWeights` structure, containing Tensors or Variables.
-    optimizer_state: a list of Tensors or Variables, in the order returned by
-      `optimizer.variables()`
-    delta_aggregate_state: state (possibly empty) of the delta_aggregate_fn.
-    model_broadcast_state: state (possibly empty) of the model_broadcast_fn.
-  """
+  """Represents the state of the server carried between rounds."""
   model = attr.ib()
+  """a `ModelWeights` structure, containing Tensors or Variables."""
   optimizer_state = attr.ib()
+  """a list of Tensors or Variables, in the order returned by `optimizer.variables()`."""
   delta_aggregate_state = attr.ib()
+  """state (possibly empty) of the delta_aggregate_fn."""
   model_broadcast_state = attr.ib()
+  """state (possibly empty) of the model_broadcast_fn."""
 
 
 def state_with_new_model_weights(
@@ -192,12 +179,14 @@ def _apply_delta(
   grads_and_vars = tf.nest.map_structure(
       lambda x, v: (-1.0 * x, v), tf.nest.flatten(delta),
       tf.nest.flatten(model_variables.trainable))
+  # Note: this may create variables inside `optimizer`, for example if this is
+  # the first usage of Adam or momentum optmizers.
   optimizer.apply_gradients(grads_and_vars)
 
 
-def _eagerly_create_optimizer_variables(*,
-                                        model: model_lib.Model,
-                                        optimizer: tf.keras.optimizers.Optimizer) -> List[tf.Variable]:
+def _eagerly_create_optimizer_variables(
+    *, model: model_lib.Model,
+    optimizer: tf.keras.optimizers.Optimizer) -> List[tf.Variable]:
   """Forces eager construction of the optimizer variables.
 
   This code is needed both in `server_init` and `server_update` (to introduce
@@ -317,11 +306,6 @@ def _build_one_round_computation(
     a tuple of `(ServerState@SERVER, tf.data.Dataset@CLIENTS)` argument, and
     returns a tuple of `(ServerState@SERVER, metrics@SERVER)`.
   """
-  # TODO(b/124477628): would be nice not to have the construct a throwaway model
-  # here just to get the types. After fully moving to TF2.0 and eager-mode, we
-  # should re-evaluate what happens here.
-  # TODO(b/144382142): Keras name uniquification is probably the main reason we
-  # still need this.
   with tf.Graph().as_default():
     dummy_model_for_metadata = model_fn()
     model_weights_type = model_utils.weights_type_from_model(
@@ -351,11 +335,6 @@ def _build_one_round_computation(
     tf.nest.map_structure(lambda a, b: a.assign(b),
                           (model_variables, optimizer_variables),
                           (global_model, optimizer_state))
-    # We might have a NaN value e.g. if all of the clients processed had no
-    # data, so the denominator in the federated_mean is zero. If we see any
-    # NaNs, zero out the whole update.
-    # TODO(b/124538167): We should increment a server counter to
-    # track the fact a non-finite weights_delta was encountered.
     finite_weights_delta, _ = tensor_utils.zero_all_if_any_non_finite(
         mean_model_delta)
     # Update the global model variables with the delta as a pseudo-gradient.
@@ -373,7 +352,8 @@ def _build_one_round_computation(
     """Performs client local model optimization.
 
     Args:
-      dataset: a `tf.data.Dataset` that provides training examples.
+      dataset_with_byzflag: a pair of `tf.data.Dataset` that provides training examples,
+        and a boolean flag to mark whether the client is Byzantine.
       initial_model_weights: a `model_utils.ModelWeights` containing the
         starting weights.
 
@@ -402,7 +382,8 @@ def _build_one_round_computation(
 
     Args:
       server_state: a `tff.learning.framework.ServerState` named tuple.
-      federated_dataset_with_byzflag: a federated `tf.Dataset` with placement tff.CLIENTS.
+      federated_dataset_with_byzflag: a pair of a federated `tf.Dataset` with placement tff.CLIENTS,
+        and a boolean flag to mark whether the client is Byzantine.
 
     Returns:
       A tuple of updated `tff.learning.framework.ServerState` and the result of
@@ -414,7 +395,6 @@ def _build_one_round_computation(
     client_outputs = tff.federated_map(
         _compute_local_training_and_client_delta,
         (federated_dataset_with_byzflag, broadcast_output.result))
-    # TODO(b/181243799): Ensure AggregationProcess and call is_weighted.
     if len(aggregation_process.next.type_signature.parameter) == 3:
       aggregation_output = aggregation_process.next(
           server_state.delta_aggregate_state, client_outputs.weights_delta,
@@ -560,6 +540,8 @@ def build_stateless_broadcaster(
       initialize_fn=_empty_server_initialization, next_fn=stateless_broadcast)
 
 
+# TODO(b/170208719): remove `aggregation_process` after migration to
+# `model_update_aggregation_factory`.
 def build_model_delta_optimizer_process(
     model_fn: _ModelConstructor,
     model_to_client_delta_fn: Callable[[Callable[[], model_lib.Model]],
@@ -567,6 +549,7 @@ def build_model_delta_optimizer_process(
     server_optimizer_fn: _OptimizerConstructor,
     *,
     broadcast_process: Optional[measured_process.MeasuredProcess] = None,
+    aggregation_process: Optional[measured_process.MeasuredProcess] = None,
     model_update_aggregation_factory: Optional[
         factory.AggregationFactory] = None,
 ) -> iterative_process.IterativeProcess:
@@ -590,6 +573,10 @@ def build_model_delta_optimizer_process(
       `(input_values@SERVER -> output_values@CLIENT)`. If set to default None,
       the server model is broadcast to the clients using the default
       tff.federated_broadcast.
+    aggregation_process: A `tff.templates.MeasuredProcess` that aggregates the
+      model updates on the clients back to the server. It must support the
+      signature `({input_values}@CLIENTS-> output_values@SERVER)`. Must be
+      `None` if `model_update_aggregation_factory` is not `None.`
     model_update_aggregation_factory: An optional
       `tff.aggregators.WeightedAggregationFactory` that contstructs
       `tff.templates.AggregationProcess` for aggregating the client model
@@ -622,27 +609,41 @@ def build_model_delta_optimizer_process(
         'signature (<state@S, input@S> -> <state@S, result@C, measurements@S>).'
         ' Got: {t}'.format(t=broadcast_process.next.type_signature))
 
-  if model_update_aggregation_factory is None:
-    model_update_aggregation_factory = mean.MeanFactory()
-  py_typecheck.check_type(model_update_aggregation_factory,
-                          factory.AggregationFactory.__args__)
-  if isinstance(model_update_aggregation_factory,
-                factory.WeightedAggregationFactory):
-    aggregation_process = model_update_aggregation_factory.create(
-        model_weights_type.trainable,
-        tff.TensorType(tf.float32))
+  if (model_update_aggregation_factory is not None and
+      aggregation_process is not None):
+    raise DisjointArgumentError(
+        'Must specify only one of `model_update_aggregation_factory` and '
+        '`AggregationProcess`.')
+
+  if aggregation_process is None:
+    if model_update_aggregation_factory is None:
+      model_update_aggregation_factory = mean.MeanFactory()
+    py_typecheck.check_type(model_update_aggregation_factory,
+                            factory.AggregationFactory.__args__)
+    if isinstance(model_update_aggregation_factory,
+                  factory.WeightedAggregationFactory):
+      aggregation_process = model_update_aggregation_factory.create(
+          model_weights_type.trainable,
+          tff.TensorType(tf.float32))
+    else:
+      aggregation_process = model_update_aggregation_factory.create(
+          model_weights_type.trainable)
+    process_signature = aggregation_process.next.type_signature
+    input_client_value_type = process_signature.parameter[1]
+    result_server_value_type = process_signature.result[1]
+    if input_client_value_type.member != result_server_value_type.member:
+      raise TypeError('`model_update_aggregation_factory` does not produce a '
+                      'compatible `AggregationProcess`. The processes must '
+                      'retain the type structure of the inputs on the '
+                      f'server, but got {input_client_value_type.member} != '
+                      f'{result_server_value_type.member}.')
   else:
-    aggregation_process = model_update_aggregation_factory.create(
-        model_weights_type.trainable)
-  process_signature = aggregation_process.next.type_signature
-  input_client_value_type = process_signature.parameter[1]
-  result_server_value_type = process_signature.result[1]
-  if input_client_value_type.member != result_server_value_type.member:
-    raise TypeError('`model_update_aggregation_factory` does not produce a '
-                    'compatible `AggregationProcess`. The processes must '
-                    'retain the type structure of the inputs on the '
-                    f'server, but got {input_client_value_type.member} != '
-                    f'{result_server_value_type.member}.')
+    next_num_args = len(aggregation_process.next.type_signature.parameter)
+    if next_num_args not in [2, 3]:
+      raise ValueError(
+          f'`next` function of `aggregation_process` must take two (for '
+          f'unweighted aggregation) or three (for weighted aggregation) '
+          f'arguments. Found {next_num_args}.')
 
   if not _is_valid_model_update_aggregation_process(aggregation_process):
     raise ProcessTypeError(
