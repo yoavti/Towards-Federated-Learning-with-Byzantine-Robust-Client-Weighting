@@ -147,8 +147,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
       weights_delta_weight = tf.constant(1.0)
     else:
       if byzflag:
-        # TODO generalize
-        weights_delta_weight = self._client_weighting({'num_tokens': self._byzantine_client_weight})
+        weights_delta_weight = self._client_weighting({key: self._byzantine_client_weight for key in model_output})
       else:
         weights_delta_weight = self._client_weighting(model_output)
     # TODO(b/176245976): TFF `ClientOutput` structure names are confusing.
