@@ -20,9 +20,7 @@ from typing import Any, Callable, Dict, List, Optional
 from absl import flags, logging
 import tensorflow as tf
 
-from google_tff_research.utils.optimizers import lars
-from google_tff_research.utils.optimizers import shampoo
-from google_tff_research.utils.optimizers import yogi
+from shared.google_tff_research.utils.optimizers import yogi, shampoo, lars
 
 
 def _optimizer_canonical_name(optimizer_cls):

@@ -1,4 +1,4 @@
-from experiments.attacks.local.base import LocalAttack
+from experiments.training.attacks.local.base import LocalAttack
 import tensorflow as tf
 import random
 
