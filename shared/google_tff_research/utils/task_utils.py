@@ -37,6 +37,7 @@ TASK_CONSTRUCTORS = {
         stackoverflow.create_word_prediction_task
 }
 SUPPORTED_TASKS = TASK_CONSTRUCTORS.keys()
+TASKS_NUM_TOKENS = {'shakespeare_character', 'stackoverflow_tag', 'stackoverflow_word'}
 TASK_FLAG_NAME = 'task'
 
 
