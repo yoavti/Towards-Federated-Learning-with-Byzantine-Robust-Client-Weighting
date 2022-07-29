@@ -64,7 +64,7 @@ def main(_):
   # applying different preprocess procedures
   selected_preprocess_constructors = {name: PREPROC_TRANSFORMS[name] for name in FLAGS.preprocess_funcs}
   selected_preprocess = {name: constructor(alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
-                         for name, constructor in selected_preprocess_constructors}
+                         for name, constructor in selected_preprocess_constructors.items()}
   named_new_weights = {name: preprocess.fit_transform(weights)
                        for name, preprocess in selected_preprocess.items()}
 
