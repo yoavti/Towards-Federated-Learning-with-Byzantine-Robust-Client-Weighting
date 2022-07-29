@@ -17,12 +17,11 @@ from tensorflow_federated.python.common_libs import py_typecheck
 from tensorflow_federated.python.common_libs import structure
 from tensorflow_federated.python.core.api import computation_base
 from tensorflow_federated.python.core.api import computations
-# from tensorflow_federated.python.core.api import intrinsics
-# from tensorflow_federated.python.core.impl.types import placement_literals
 from tensorflow_federated.python.core.impl.types import type_analysis
 from tensorflow_federated.python.core.templates import iterative_process
 
 import tensorflow_federated as tff
+
 
 def compose_dataset_computation_with_computation(
     dataset_computation: computation_base.Computation,
@@ -59,7 +58,7 @@ def compose_dataset_computation_with_computation(
   This functionality is useful in several settings:
 
   * We may want to push some dataset preprocessing to happen on the clients, as
-    opposed to preprocessing happening on the TFF simultation controller. This
+    opposed to preprocessing happening on the TFF simulation controller. This
     may be necessary, e.g., in the case that we want to shuffle client
     examples.
   * We may want to *construct* the entire dataset on the clients, given a client
@@ -86,10 +85,8 @@ def compose_dataset_computation_with_computation(
 
   dataset_return_type = dataset_computation.type_signature.result
   if dataset_computation.type_signature.parameter is None:
-    raise TypeError('Can only construct a new iterative process if '
-                    '`dataset_computation` accepts a non-None arg; the '
-                    'type {} accepts no argument.'.format(
-                        dataset_computation.type_signature))
+    raise TypeError('Can only construct a new iterative process if `dataset_computation` accepts a non-None arg; '
+                    'the type {} accepts no argument.'.format(dataset_computation.type_signature))
 
   comp_body_param_type = computation_body.type_signature.parameter
 
@@ -99,8 +96,8 @@ def compose_dataset_computation_with_computation(
   if is_desired_federated_sequence(comp_body_param_type):
     # Single argument that matches, we compose in a straightforward manner.
     new_param_type = tff.FederatedType(
-        dataset_computation.type_signature.parameter,
-        tff.CLIENTS)
+      dataset_computation.type_signature.parameter,
+      tff.CLIENTS)
 
     @computations.federated_computation(new_param_type)
     def new_computation(param):
@@ -115,8 +112,8 @@ def compose_dataset_computation_with_computation(
     dataset_index = None
     new_param_elements = []
     federated_param_type = tff.FederatedType(
-        dataset_computation.type_signature.parameter,
-        tff.CLIENTS)
+      dataset_computation.type_signature.parameter,
+      tff.CLIENTS)
 
     for idx, (elem_name, elem_type) in enumerate(
         structure.iter_elements(comp_body_param_type)):
@@ -132,16 +129,16 @@ def compose_dataset_computation_with_computation(
         new_param_elements.append((elem_name, elem_type))
     if dataset_index is None:
       raise TypeError(
-          'No sequence parameter found in `computation_body` '
-          'argument signature matching `dataset_computation` result signature.'
-          '\nArgument signature: {}\nResult signature: {}'.format(
-              comp_body_param_type, dataset_return_type))
+        'No sequence parameter found in `computation_body` '
+        'argument signature matching `dataset_computation` result signature.'
+        '\nArgument signature: {}\nResult signature: {}'.format(
+          comp_body_param_type, dataset_return_type))
     new_param_type = tff.StructType(new_param_elements)
 
     @computations.federated_computation(new_param_type)
     def new_computation(param):
       datasets_on_clients = tff.federated_map(dataset_computation,
-                                                     param[dataset_index])
+                                              param[dataset_index])
       original_param = []
       for idx, elem in enumerate(param):
         if idx != dataset_index:
@@ -153,12 +150,12 @@ def compose_dataset_computation_with_computation(
     return new_computation
   else:
     raise TypeError(
-        '`computation_body` is not a single argument matching the'
-        'signature of `dataset_computation` result signature, nor a struct '
-        'of arguments.\n'
-        'Argument signature: {}\n'
-        'Result signature: {}'.format(comp_body_param_type,
-                                      dataset_return_type))
+      '`computation_body` is not a single argument matching the'
+      'signature of `dataset_computation` result signature, nor a struct '
+      'of arguments.\n'
+      'Argument signature: {}\n'
+      'Result signature: {}'.format(comp_body_param_type,
+                                    dataset_return_type))
 
 
 def compose_dataset_computation_with_iterative_process(
@@ -197,12 +194,12 @@ def compose_dataset_computation_with_iterative_process(
   This functionality is useful in several settings:
 
   * We may want to push some dataset preprocessing to happen on the clients, as
-    opposed to preprocessing happening on the TFF simultation controller. This
+    opposed to preprocessing happening on the TFF simulation controller. This
     may be necessary, e.g., in the case that we want to shuffle client
     examples.
   * We may want to *construct* the entire dataset on the clients, given a client
     id. This may be useful in order to speed up distributed simulations, in
-    order to remove a linear cost incurred in constructing and serializign the
+    order to remove a linear cost incurred in constructing and serializing the
     datasets on the controller.
 
   Args:
@@ -223,10 +220,8 @@ def compose_dataset_computation_with_iterative_process(
   py_typecheck.check_type(process, iterative_process.IterativeProcess)
 
   if dataset_computation.type_signature.parameter is None:
-    raise TypeError('Can only construct a new iterative process if '
-                    '`dataset_computation` accepts a non-None arg; the '
-                    'type {} accepts no argument.'.format(
-                        dataset_computation.type_signature))
+    raise TypeError('Can only construct a new iterative process if `dataset_computation` accepts a non-None arg; '
+                    'the type {} accepts no argument.'.format(dataset_computation.type_signature))
 
   init_fn = process.initialize
   if type_analysis.contains(init_fn.type_signature.result,
@@ -236,6 +231,6 @@ def compose_dataset_computation_with_iterative_process(
                     '{}.'.format(init_fn.type_signature.result))
 
   new_next_comp = compose_dataset_computation_with_computation(
-      dataset_computation, process.next)
+    dataset_computation, process.next)
   return iterative_process.IterativeProcess(
-      initialize_fn=init_fn, next_fn=new_next_comp)
+    initialize_fn=init_fn, next_fn=new_next_comp)

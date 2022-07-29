@@ -81,7 +81,7 @@ class ClientDeltaFn(object, metaclass=abc.ABCMeta):
   def __call__(self, dataset, initial_weights):
     """Defines the complete client computation.
 
-    Typically implementations should be decorated with `tf.function`.
+    Typically, implementations should be decorated with `tf.function`.
 
     Args:
       dataset: a `tf.data.Dataset` producing batches than can be fed to
@@ -180,17 +180,17 @@ def _apply_delta(
       lambda x, v: (-1.0 * x, v), tf.nest.flatten(delta),
       tf.nest.flatten(model_variables.trainable))
   # Note: this may create variables inside `optimizer`, for example if this is
-  # the first usage of Adam or momentum optmizers.
+  # the first usage of Adam or momentum optimizers.
   optimizer.apply_gradients(grads_and_vars)
 
 
-def _eagerly_create_optimizer_variables(
-    *, model: model_lib.Model,
-    optimizer: tf.keras.optimizers.Optimizer) -> List[tf.Variable]:
+def _eagerly_create_optimizer_variables(*,
+                                        model: model_lib.Model,
+                                        optimizer: tf.keras.optimizers.Optimizer) -> List[tf.Variable]:
   """Forces eager construction of the optimizer variables.
 
   This code is needed both in `server_init` and `server_update` (to introduce
-  variables so we can read their initial values for the initial state).
+  variables, so we can read their initial values for the initial state).
 
   Args:
     model: A `tff.learning.Model`.
@@ -382,7 +382,7 @@ def _build_one_round_computation(
 
     Args:
       server_state: a `tff.learning.framework.ServerState` named tuple.
-      federated_dataset_with_byzflag: a pair of a federated `tf.Dataset` with placement tff.CLIENTS,
+      federated_dataset_with_byzflag: a pair of a federated `tf.Dataset` with placement `tff.CLIENTS`,
         and a boolean flag to mark whether the client is Byzantine.
 
     Returns:
@@ -456,7 +456,7 @@ def _is_valid_broadcast_process(
     process: A measured process to validate.
 
   Returns:
-    `True` iff the process is a validate broadcast process, otherwise `False`.
+    `True` iff the process is a valid broadcast process, otherwise `False`.
   """
   next_type = process.next.type_signature
   return (isinstance(process, measured_process.MeasuredProcess) and
@@ -476,7 +476,7 @@ def _is_valid_model_update_aggregation_process(
     process: A measured process to validate.
 
   Returns:
-    `True` iff the process is a validate aggregation process, otherwise `False`.
+    `True` iff the process is a valid aggregation process, otherwise `False`.
   """
   next_type = process.next.type_signature
   input_client_value_type = next_type.parameter[1]
@@ -559,7 +559,7 @@ def build_model_delta_optimizer_process(
   which applies aggregated model deltas to the server model with a
   `ClientDeltaFn` that specifies how `weight_deltas` are computed on device.
 
-  Note: We pass in functions rather than constructed objects so we can ensure
+  Note: We pass in functions rather than constructed objects, so we can ensure
   any variables or ops created in constructors are placed in the correct graph.
 
   Args:
@@ -578,7 +578,7 @@ def build_model_delta_optimizer_process(
       signature `({input_values}@CLIENTS-> output_values@SERVER)`. Must be
       `None` if `model_update_aggregation_factory` is not `None.`
     model_update_aggregation_factory: An optional
-      `tff.aggregators.WeightedAggregationFactory` that contstructs
+      `tff.aggregators.WeightedAggregationFactory` that constructs
       `tff.templates.AggregationProcess` for aggregating the client model
       updates on the server. If `None`, uses a default constructed
       `tff.aggregators.MeanFactory`, creating a stateless mean aggregation. Must
@@ -609,8 +609,7 @@ def build_model_delta_optimizer_process(
         'signature (<state@S, input@S> -> <state@S, result@C, measurements@S>).'
         ' Got: {t}'.format(t=broadcast_process.next.type_signature))
 
-  if (model_update_aggregation_factory is not None and
-      aggregation_process is not None):
+  if model_update_aggregation_factory is not None and aggregation_process is not None:
     raise DisjointArgumentError(
         'Must specify only one of `model_update_aggregation_factory` and '
         '`AggregationProcess`.')
