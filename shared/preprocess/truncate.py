@@ -1,20 +1,19 @@
 import numpy as np
 from math import isclose
-from shared.preprocess.utils import EPSILON, trunc_helpers, maximal_weight_proportion, is_valid_solution
+from shared.preprocess.utils import trunc_helpers, maximal_weight_proportion, is_valid_solution, Preprocess
 
 
-def trunc(vec, threshold):
+def _trunc(vec, threshold):
   return np.where(vec > threshold, threshold, vec)
 
 
-def find_U(N, *, alpha_star=0.5, alpha=0.1):
+def _find_U(N, *, alpha=0.1, alpha_star=0.5):
   N = np.array(N)
   N = np.sort(N)
   N = N[::-1]
   K, t = trunc_helpers(N, alpha)
-  alpha_star -= EPSILON  # helps deal with numerical errors
   for u, n_u in enumerate(N):
-    truncated = trunc(N, n_u)
+    truncated = _trunc(N, n_u)
     if not is_valid_solution(truncated, alpha, alpha_star):
       continue
     mwp = maximal_weight_proportion(truncated, alpha)
@@ -36,6 +35,13 @@ def find_U(N, *, alpha_star=0.5, alpha=0.1):
   return N[-1]
 
 
-def truncate(N, *, alpha_star=0.5, alpha=0.1):
-  U = find_U(N, alpha_star=alpha_star, alpha=alpha)
-  return trunc(N, U)
+class Truncate(Preprocess):
+  def __init__(self, *, alpha=0.1, alpha_star=0.5):
+    super().__init__(alpha=alpha, alpha_star=alpha_star)
+    self.U = 0
+
+  def fit(self, N):
+    self.U = _find_U(N, alpha=self._alpha, alpha_star=self._alpha_star)
+
+  def transform(self, N):
+    return _trunc(N, self.U)
