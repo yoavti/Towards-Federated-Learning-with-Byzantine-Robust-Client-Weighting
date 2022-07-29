@@ -17,10 +17,9 @@
 import functools
 import os
 
+import numpy as np
 import tensorflow as tf
 import tensorflow_federated as tff
-
-from typing import Callable
 
 from absl import app, flags
 
@@ -33,15 +32,13 @@ from flags_validators import check_positive, check_non_negative, check_proportio
 from shared.aggregators import trimmed_mean, median, mean
 from shared.preprocess import PREPROC_FUNCS
 
-from google_tff_research.optimization.shared import training_specs
 from google_tff_research.utils import training_loop, utils_impl, task_utils
 from google_tff_research.utils.optimizers import optimizer_utils
 
-from experiments.federated_training import configure_training
 from experiments.numpy_aggr import NumpyAggrFactory
 from experiments.attacks.local import ATTACKS
 
-from tff_patch import build_federated_averaging_process
+from tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
 
 CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
@@ -143,77 +140,114 @@ def main(argv):
 
   train_client_spec = ClientSpec(num_epochs=FLAGS.client_epochs_per_round, batch_size=FLAGS.client_batch_size)
   task = task_utils.create_task_from_flags(train_client_spec)
+  model_fn = task.model_fn
+  train_data = task.datasets.train_data.preprocess(task.datasets.train_preprocess_fn)
+  test_data = task.datasets.get_centralized_test_data()
 
-  def iterative_process_builder(model_fn: Callable[[], tff.learning.Model]) -> tff.templates.IterativeProcess:
-    """Creates an iterative process using a given TFF `model_fn`.
+  client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
+  server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
 
-    Args:
-      model_fn: A no-arg function returning a `tff.learning.Model`.
+  client_weight_fn = None
+  if FLAGS.task in ['shakespeare_character', 'stackoverflow_word'] and FLAGS.weight_preproc == 'num_examples':
 
-    Returns:
-      A `tff.templates.IterativeProcess`.
-    """
-    client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
-    server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
+    def client_weight_fn(local_outputs):
+      return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
+  elif FLAGS.weight_preproc in CLIENT_WEIGHTING:
+    client_weight_fn = CLIENT_WEIGHTING[FLAGS.weight_preproc]
 
-    client_weight_fn = None
-    if FLAGS.task in ['shakespeare_character', 'stackoverflow_word'] and FLAGS.weight_preproc == 'num_examples':
+  inner_aggregator = mean
+  inner_aggregators = {'trimmed_mean': functools.partial(trimmed_mean, beta=FLAGS.alpha),
+                       'median': median,
+                       'mean': mean}
+  if FLAGS.aggregation in inner_aggregators:
+    inner_aggregator = inner_aggregators[FLAGS.aggregation]
 
-      def client_weight_fn(local_outputs):
-        return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
-    elif FLAGS.weight_preproc in CLIENT_WEIGHTING:
-      client_weight_fn = CLIENT_WEIGHTING[FLAGS.weight_preproc]
+  if FLAGS.weight_preproc in PREPROC_FUNCS:
+    preproc_func = PREPROC_FUNCS[FLAGS.weight_preproc]
 
-    inner_aggregator = mean
-    inner_aggregators = {'trimmed_mean': functools.partial(trimmed_mean, beta=FLAGS.alpha),
-                         'median': median,
-                         'mean': mean}
-    if FLAGS.aggregation in inner_aggregators:
-      inner_aggregator = inner_aggregators[FLAGS.aggregation]
+    def aggregate_with_preproc(points, weights):
+      weights = preproc_func(weights, alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
+      return inner_aggregator(points, weights)
 
-    if FLAGS.weight_preproc in PREPROC_FUNCS:
-      preproc_func = PREPROC_FUNCS[FLAGS.weight_preproc]
-
-      def aggregate_with_preproc(points, weights):
-        weights = preproc_func(weights, alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
-        return inner_aggregator(points, weights)
-
-      aggregator = NumpyAggrFactory(aggregate_with_preproc)
+    aggregator = NumpyAggrFactory(aggregate_with_preproc)
+  else:
+    if FLAGS.aggregation == 'mean':
+      aggregator = None  # defaults to reduce mean
     else:
-      if FLAGS.aggregation == 'mean':
-        aggregator = None  # defaults to reduce mean
-      else:
-        aggregator = NumpyAggrFactory(inner_aggregator)
+      aggregator = NumpyAggrFactory(inner_aggregator)
 
-    attack_constructor = ATTACKS[FLAGS.attack]
-    attack = attack_constructor()
+  attack_constructor = ATTACKS[FLAGS.attack]
+  attack = attack_constructor()
 
-    return build_federated_averaging_process(model_fn=model_fn,
-                                             client_optimizer_fn=client_optimizer_fn,
-                                             server_optimizer_fn=server_optimizer_fn,
-                                             client_weighting=client_weight_fn,
-                                             model_update_aggregation_factory=aggregator,
-                                             byzantine_client_weight=FLAGS.byzantine_client_weight,
-                                             attack=attack)
+  iterative_process = build_federated_averaging_process(model_fn=model_fn,
+                                                        client_optimizer_fn=client_optimizer_fn,
+                                                        server_optimizer_fn=server_optimizer_fn,
+                                                        client_weighting=client_weight_fn,
+                                                        model_update_aggregation_factory=aggregator,
+                                                        byzantine_client_weight=FLAGS.byzantine_client_weight,
+                                                        attack=attack)
 
-  task_spec = training_specs.TaskSpec(
-    iterative_process_builder=iterative_process_builder,
-    client_epochs_per_round=FLAGS.client_epochs_per_round,
-    client_batch_size=FLAGS.client_batch_size,
-    clients_per_round=FLAGS.clients_per_round,
-    client_datasets_random_seed=FLAGS.client_datasets_random_seed,
-    num_byzantine=FLAGS.num_byzantine,
-    byzantines_part_of=FLAGS.byzantines_part_of)
+  @tff.tf_computation((tf.string, tf.bool))
+  def build_train_dataset_from_client_id(client_id_with_byzflag):
+    client_id, byzflag = client_id_with_byzflag
+    client_dataset = train_data.dataset_computation(client_id)
+    return client_dataset, byzflag
 
-  runner_spec = configure_training(task_spec, task)
+  training_process = compose_dataset_computation_with_iterative_process(
+    build_train_dataset_from_client_id, iterative_process)
+  training_process.get_model_weights = iterative_process.get_model_weights
+
+  client_ids = train_data.client_ids
+  client_ids_fn = tff.simulation.build_uniform_sampling_fn(
+    client_ids, replace=False, random_seed=FLAGS.client_datasets_random_seed)
+
+  num_byzantine = FLAGS.num_byzantine
+
+  if num_byzantine < 1:
+    num_byzantine = num_byzantine * len(client_ids)
+
+  num_byzantine = int(num_byzantine)
+
+  if FLAGS.byzantines_part_of == 'total' and num_byzantine >= len(client_ids):
+    raise ValueError(f'num_byzantine is larger than the number of all clients. '
+                     f'num_byzantine = {num_byzantine}, '
+                     f'number of clients = {len(client_ids)}')
+  if FLAGS.byzantines_part_of == 'round' and num_byzantine >= FLAGS.clients_per_round:
+    raise ValueError(f'num_byzantine is larger than the number of clients per round. '
+                     f'num_byzantine = {num_byzantine}, '
+                     f'clients per round = {FLAGS.clients_per_round}')
+
+  chosen_byz_ids = set(np.random.choice(client_ids, num_byzantine, False))
+
+  def client_sampling_fn_with_byzantine(round_num):
+    chosen_client_ids = list(client_ids_fn(round_num, FLAGS.clients_per_round))
+    byz_mask = np.zeros(FLAGS.clients_per_round, dtype=np.bool)
+    if FLAGS.byzantines_part_of == 'round':
+      byzantine_indices = np.random.choice(np.arange(FLAGS.clients_per_round), num_byzantine, False)
+      byz_mask[byzantine_indices] = True
+    elif FLAGS.byzantines_part_of == 'total':
+      byz_mask = np.array([client_id in chosen_byz_ids for client_id in chosen_client_ids], dtype=np.bool)
+
+    return list(zip(chosen_client_ids, byz_mask))
+
+  evaluate_fn = tff.learning.build_federated_evaluation(model_fn)
+
+  def test_fn(state):
+    return evaluate_fn(
+      training_process.get_model_weights(state), [test_data])
+
+  def validation_fn(state, round_num):
+    del round_num
+    return evaluate_fn(
+      training_process.get_model_weights(state), [test_data])
 
   _write_hparam_flags()
 
   training_loop.run(
-    iterative_process=runner_spec.iterative_process,
-    client_datasets_fn=runner_spec.client_datasets_fn,
-    validation_fn=runner_spec.validation_fn,
-    test_fn=runner_spec.test_fn,
+    iterative_process=training_process,
+    client_datasets_fn=client_sampling_fn_with_byzantine,
+    validation_fn=validation_fn,
+    test_fn=test_fn,
     total_rounds=FLAGS.total_rounds,
     experiment_name=FLAGS.experiment_name,
     root_output_dir=FLAGS.root_output_dir,
