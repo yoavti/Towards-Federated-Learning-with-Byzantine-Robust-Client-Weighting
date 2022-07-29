@@ -36,7 +36,7 @@ from experiments.training.attacks.local import ATTACKS
 from experiments.training.tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
 from experiments.training.numpy_aggr import NumpyAggrFactory
 
-CLIENT_WEIGHTING = {'uniform': ClientWeighting.UNIFORM, 'num_examples': ClientWeighting.NUM_EXAMPLES}
+CLIENT_WEIGHTING = ['uniform', 'num_examples']
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
 BYZANTINES_PART_OF = ['total', 'round']
 
@@ -69,7 +69,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
                        'How often to checkpoint the global model.')
 
   # Parameters specific for our paper
-  flags.DEFINE_enum('weight_preproc', 'num_examples', list(CLIENT_WEIGHTING) + list(PREPROC_FUNCS),
+  flags.DEFINE_enum('weight_preproc', 'num_examples', CLIENT_WEIGHTING + list(PREPROC_FUNCS),
                     'What to do with the clients\' relative weights.')
 
   flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
@@ -142,12 +142,11 @@ def configure_task():
 
 def configure_client_weight_fn():
   client_weight_fn = None
-  if FLAGS.task in ['shakespeare_character', 'stackoverflow_word'] and FLAGS.weight_preproc == 'num_examples':
-
+  if FLAGS.weight_preproc == 'num_examples' and FLAGS.task in task_utils.TASKS_NUM_TOKENS:
     def client_weight_fn(local_outputs):
       return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
-  elif FLAGS.weight_preproc in CLIENT_WEIGHTING:
-    client_weight_fn = CLIENT_WEIGHTING[FLAGS.weight_preproc]
+  elif FLAGS.weight_preproc == 'uniform':
+    client_weight_fn = ClientWeighting.UNIFORM
   return client_weight_fn
 
 
