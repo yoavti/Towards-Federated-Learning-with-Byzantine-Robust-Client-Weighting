@@ -1,6 +1,6 @@
-from experiments.attacks.local.base import LocalAttack
-import tensorflow as tf
 import random
+import tensorflow as tf
+from experiments.training.attacks.local.base import LocalAttack
 
 
 class GaussianAttack(LocalAttack):

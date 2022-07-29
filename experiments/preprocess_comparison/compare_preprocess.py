@@ -1,12 +1,13 @@
 from absl import app, flags
+from pprint import PrettyPrinter
 
-from preprocess_comparison.comparison_utils import plot_weights, available_metrics
-from preprocess_comparison.load import dataset_modules, get_client_weights
+from experiments.preprocess_comparison.comparison_utils import plot_weights, available_metrics
+from experiments.preprocess_comparison.load import dataset_modules, get_client_weights
+
+from shared.google_tff_research.utils import utils_impl
 from shared.preprocess import PREPROC_FUNCS
 from shared.preprocess.utils import is_valid_solution, maximal_weight_proportion
-from google_tff_research.utils import utils_impl
-
-from pprint import PrettyPrinter
+from shared.flags_validators import create_optional_validator, check_positive, check_proportion
 
 pp = PrettyPrinter()
 
@@ -23,6 +24,10 @@ with utils_impl.record_hparam_flags() as comparison_flags:
   flags.DEFINE_bool('check_validity', True, 'Whether to check if a given preprocess solution gives a valid mwp.')
   flags.DEFINE_bool('plot', True, 'Whether to plot the different weights.')
   flags.DEFINE_bool('compare_mwp', True, 'Whether to print the mwp of each preprocess output.')
+
+flags.register_validator('limit_count', create_optional_validator(check_positive))
+flags.register_validator('alpha', check_proportion)
+flags.register_validator('alpha_star', check_proportion)
 
 FLAGS = flags.FLAGS
 

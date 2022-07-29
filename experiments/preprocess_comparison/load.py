@@ -1,7 +1,7 @@
 import os
 
-import tensorflow_federated as tff
 import numpy as np
+import tensorflow_federated as tff
 
 
 dataset_modules = {'cifar100': tff.simulation.datasets.cifar100,

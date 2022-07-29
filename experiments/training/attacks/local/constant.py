@@ -1,5 +1,5 @@
-from experiments.attacks.local.base import LocalAttack
 import tensorflow as tf
+from experiments.training.attacks.local.base import LocalAttack
 
 
 class ConstantAttack(LocalAttack):
