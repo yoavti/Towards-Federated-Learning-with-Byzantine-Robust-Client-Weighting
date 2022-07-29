@@ -14,7 +14,7 @@
 
 import unittest
 from experiments.preprocess_comparison.load import get_client_weights
-from shared.preprocess import lp, truncate
+from shared.preprocess import LP, Truncate
 from shared.preprocess.utils import maximal_weight_proportion
 
 
@@ -29,16 +29,17 @@ class PreprocessTest(unittest.TestCase):
     mwp = maximal_weight_proportion(N, ALPHA)
     self.assertLessEqual(mwp, ALPHA_STAR, 'mwp of resulting weights is larger that alpha*')
 
-  def _test_valid(self, preprocess):
+  def _test_valid(self, preprocess_constructor):
     N = get_client_weights(DATASET, LIMIT_COUNT)
-    N_ = preprocess(N, alpha=ALPHA, alpha_star=ALPHA_STAR)
+    preprocess_transform = preprocess_constructor(alpha=ALPHA, alpha_star=ALPHA_STAR)
+    N_ = preprocess_transform.fit_transform(N)
     self._is_valid_solution(N_)
 
   def test_lp_valid(self):
-    self._test_valid(lp)
+    self._test_valid(LP)
 
   def test_truncate_valid(self):
-    self._test_valid(truncate)
+    self._test_valid(Truncate)
 
 
 if __name__ == '__main__':
