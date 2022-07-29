@@ -1,6 +1,3 @@
-EPSILON = 1e-3
-
-
 def trunc_helpers(N, alpha):
     N = list(N)
     K = len(N)
