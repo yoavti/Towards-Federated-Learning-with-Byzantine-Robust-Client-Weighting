@@ -14,11 +14,12 @@
 """Utilities for configuring tasks for TFF simulations via flags."""
 
 import inspect
-from typing import Optional
 
-from absl import flags
-from absl import logging
 import tensorflow_federated as tff
+
+from typing import Optional
+from absl import flags, logging
+
 from tensorflow_federated.python.simulation.baselines import cifar100, shakespeare, emnist, stackoverflow
 
 TASK_CONSTRUCTORS = {

@@ -17,11 +17,11 @@ import unittest
 
 from absl import app, flags
 
-from experiments.training import run_experiment
-from experiments.training.run_experiment import CLIENT_WEIGHTING, AGGREGATORS, BYZANTINES_PART_OF
-from shared.preprocess import PREPROC_FUNCS
-from experiments.training.attacks.local import ATTACKS
 from shared.google_tff_research.utils.task_utils import SUPPORTED_TASKS
+from shared.preprocess import PREPROC_FUNCS
+from experiments.training import run_experiment
+from experiments.training.attacks.local import ATTACKS
+from experiments.training.run_experiment import CLIENT_WEIGHTING, AGGREGATORS, BYZANTINES_PART_OF
 
 FLAGS = flags.FLAGS
 

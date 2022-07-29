@@ -1,5 +1,5 @@
-from ortools.linear_solver.pywraplp import Solver
 import numpy as np
+from ortools.linear_solver.pywraplp import Solver
 from shared.preprocess.utils import EPSILON, trunc_helpers
 
 

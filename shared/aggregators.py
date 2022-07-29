@@ -1,6 +1,5 @@
-from functools import partial
-
 import numpy as np
+from functools import partial
 from wquantiles import quantile_1D
 
 

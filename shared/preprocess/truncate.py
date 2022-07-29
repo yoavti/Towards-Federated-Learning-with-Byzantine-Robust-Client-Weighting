@@ -1,5 +1,5 @@
-from math import isclose
 import numpy as np
+from math import isclose
 from shared.preprocess.utils import EPSILON, trunc_helpers, maximal_weight_proportion, is_valid_solution
 
 

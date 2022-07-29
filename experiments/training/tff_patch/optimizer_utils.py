@@ -15,11 +15,13 @@
 
 import abc
 import collections
+import attr
+
 from typing import Callable, List, Optional, Tuple, Union
 
-import attr
 import numpy as np
 import tensorflow as tf
+import tensorflow_federated as tff
 
 from tensorflow_federated.python.aggregators import factory
 from tensorflow_federated.python.aggregators import mean
@@ -35,8 +37,6 @@ from tensorflow_federated.python.core.templates import measured_process
 from tensorflow_federated.python.learning import model as model_lib
 from tensorflow_federated.python.learning import model_utils
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
-
-import tensorflow_federated as tff
 
 # Type aliases.
 _ModelConstructor = Callable[[], model_lib.Model]
