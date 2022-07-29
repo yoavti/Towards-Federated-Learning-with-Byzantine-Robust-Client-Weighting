@@ -246,6 +246,9 @@ def build_federated_averaging_process(
   Returns:
     A `tff.templates.IterativeProcess`.
   """
+  py_typecheck.check_callable(model_fn)
+  py_typecheck.check_callable(client_optimizer_fn)
+  py_typecheck.check_callable(server_optimizer_fn)
 
   if isinstance(model_update_aggregation_factory,
                 factory.UnweightedAggregationFactory):

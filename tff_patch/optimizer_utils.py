@@ -594,9 +594,6 @@ def build_model_delta_optimizer_process(
     DisjointArgumentError: if both `aggregation_process` and
       `model_update_aggregation_factory` are not `None`.
   """
-  py_typecheck.check_callable(model_fn)
-  py_typecheck.check_callable(model_to_client_delta_fn)
-  py_typecheck.check_callable(server_optimizer_fn)
 
   model_weights_type = model_utils.weights_type_from_model(model_fn)
 
