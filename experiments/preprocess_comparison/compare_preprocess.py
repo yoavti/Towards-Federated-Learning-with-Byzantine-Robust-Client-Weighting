@@ -5,7 +5,7 @@ from experiments.preprocess_comparison.comparison_utils import plot_weights, ava
 from experiments.preprocess_comparison.load import dataset_modules, get_client_weights
 
 from shared.google_tff_research.utils import utils_impl
-from shared.preprocess import PREPROC_FUNCS
+from shared.preprocess import PREPROC_TRANSFORMS
 from shared.preprocess.utils import is_valid_solution, maximal_weight_proportion
 from shared.flags_validators import create_optional_validator, check_positive, check_proportion
 
@@ -15,7 +15,7 @@ pp = PrettyPrinter()
 with utils_impl.record_hparam_flags() as comparison_flags:
   flags.DEFINE_enum('dataset', 'emnist', list(dataset_modules), 'Which dataset to take weights from.')
   flags.DEFINE_integer('limit_count', None, 'Number of weights to take from dataset.')
-  flags.DEFINE_multi_enum('preprocess_funcs', list(PREPROC_FUNCS), list(PREPROC_FUNCS),
+  flags.DEFINE_multi_enum('preprocess_funcs', list(PREPROC_TRANSFORMS), list(PREPROC_TRANSFORMS),
                           'What to do with the clients\' relative weights.')
   flags.DEFINE_float('alpha', 0.1, 'Byzantine proportion.')
   flags.DEFINE_float('alpha_star', 0.5, 'Byzantine weight proportion.')
@@ -62,9 +62,12 @@ def main(_):
   # loading client weights
   weights = get_client_weights(FLAGS.dataset, FLAGS.limit_count)
   # applying different preprocess procedures
-  selected_preprocess = {name: PREPROC_FUNCS[name] for name in FLAGS.preprocess_funcs}
-  named_new_weights = {name: preprocess(weights, alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
+  selected_preprocess_constructors = {name: PREPROC_TRANSFORMS[name] for name in FLAGS.preprocess_funcs}
+  selected_preprocess = {name: constructor(alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
+                         for name, constructor in selected_preprocess_constructors.items()}
+  named_new_weights = {name: preprocess.fit_transform(weights)
                        for name, preprocess in selected_preprocess.items()}
+
   # comparing the outputs
   selected_metrics = {name: available_metrics[name] for name in FLAGS.metrics}
   compare_weights(weights, named_new_weights, selected_metrics,

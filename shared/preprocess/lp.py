@@ -1,6 +1,6 @@
 import numpy as np
 from ortools.linear_solver.pywraplp import Solver
-from shared.preprocess.utils import EPSILON, trunc_helpers
+from shared.preprocess.utils import trunc_helpers, VectorMap
 
 
 def lp(N, *, alpha=0.1, alpha_star=0.5):
@@ -10,7 +10,6 @@ def lp(N, *, alpha=0.1, alpha_star=0.5):
   inv_idx = np.empty_like(idx)
   inv_idx[idx] = np.arange(idx.shape[0])
   N = N[idx]
-  alpha_star -= EPSILON  # helps deal with numerical errors
 
   # Create the linear solver using the CBC backend
   solver = Solver('Minimize L1 distance', Solver.GLOP_LINEAR_PROGRAMMING)
@@ -41,3 +40,8 @@ def lp(N, *, alpha=0.1, alpha_star=0.5):
   ret = np.array(ret)
   ret = ret[inv_idx]
   return ret
+
+
+class LP(VectorMap):
+  def _vector_computation(self, N):
+    return lp(N, alpha=self._alpha, alpha_star=self._alpha_star)
