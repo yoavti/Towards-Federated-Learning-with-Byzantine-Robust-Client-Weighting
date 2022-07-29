@@ -548,7 +548,6 @@ def build_model_delta_optimizer_process(
                                        ClientDeltaFn],
     server_optimizer_fn: _OptimizerConstructor,
     *,
-    broadcast_process: Optional[measured_process.MeasuredProcess] = None,
     aggregation_process: Optional[measured_process.MeasuredProcess] = None,
     model_update_aggregation_factory: Optional[
         factory.AggregationFactory] = None,
@@ -568,11 +567,6 @@ def build_model_delta_optimizer_process(
     server_optimizer_fn: A no-arg function that returns a `tf.Optimizer`. The
       `apply_gradients` method of this optimizer is used to apply client updates
       to the server model.
-    broadcast_process: A `tff.templates.MeasuredProcess` that broadcasts the
-      model weights on the server to the clients. It must support the signature
-      `(input_values@SERVER -> output_values@CLIENT)`. If set to default None,
-      the server model is broadcast to the clients using the default
-      tff.federated_broadcast.
     aggregation_process: A `tff.templates.MeasuredProcess` that aggregates the
       model updates on the clients back to the server. It must support the
       signature `({input_values}@CLIENTS-> output_values@SERVER)`. Must be
@@ -597,14 +591,7 @@ def build_model_delta_optimizer_process(
 
   model_weights_type = model_utils.weights_type_from_model(model_fn)
 
-  if broadcast_process is None:
-    broadcast_process = build_stateless_broadcaster(
-        model_weights_type=model_weights_type)
-  if not _is_valid_broadcast_process(broadcast_process):
-    raise ProcessTypeError(
-        'broadcast_process type signature does not conform to expected '
-        'signature (<state@S, input@S> -> <state@S, result@C, measurements@S>).'
-        ' Got: {t}'.format(t=broadcast_process.next.type_signature))
+  broadcast_process = build_stateless_broadcaster(model_weights_type=model_weights_type)
 
   if model_update_aggregation_factory is not None and aggregation_process is not None:
     raise DisjointArgumentError(
