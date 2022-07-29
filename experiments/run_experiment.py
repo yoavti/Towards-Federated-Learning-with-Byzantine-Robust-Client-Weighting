@@ -28,6 +28,8 @@ from tensorflow_federated.python.learning import ClientWeighting
 
 from tensorflow_federated.python.simulation.baselines import ClientSpec
 
+from flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator, create_and_validator
+
 from shared.aggregators import trimmed_mean, median, mean
 from shared.preprocess import PREPROC_FUNCS
 
@@ -64,7 +66,6 @@ with utils_impl.record_hparam_flags() as shared_flags:
   flags.DEFINE_string(
     'experiment_name', None, 'The name of this experiment. Will be append to '
                              '--root_output_dir to separate experiment results.')
-  flags.mark_flag_as_required('experiment_name')
   flags.DEFINE_string('root_output_dir', '/tmp/fed_opt/',
                       'Root directory for writing experiment output.')
   flags.DEFINE_integer('total_rounds', 200, 'Number of total training rounds.')
@@ -90,6 +91,27 @@ with utils_impl.record_hparam_flags() as shared_flags:
 
 with utils_impl.record_hparam_flags() as task_flags:
   task_utils.define_task_flags()
+
+
+flags.register_validator('client_epochs_per_round', check_positive)
+flags.register_validator('client_batch_size', check_positive)
+flags.register_validator('clients_per_round', check_positive)
+flags.register_validator('total_rounds', check_positive)
+flags.register_validator('rounds_per_eval', check_positive)
+flags.register_validator('rounds_per_checkpoint', check_positive)
+flags.register_validator(
+  'num_byzantine',
+  create_and_validator(
+    check_non_negative,
+    create_or_validator(
+      check_proportion,
+      check_integer)))
+flags.register_validator('byzantine_client_weight', check_non_negative)
+flags.register_validator('alpha', check_proportion)
+flags.register_validator('alpha_star', check_proportion)
+
+
+flags.mark_flags_as_required(['experiment_name', 'task'])
 
 FLAGS = flags.FLAGS
 
