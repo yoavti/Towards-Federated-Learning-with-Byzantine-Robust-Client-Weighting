@@ -16,6 +16,8 @@
 import tensorflow as tf
 import tensorflow_federated as tff
 
+from aggregators.utils import init_fn
+
 
 class RobustWeiszfeldFactory(tff.aggregators.WeightedAggregationFactory):
   """Aggregator for the Robust Federated Aggregation algorithm."""
@@ -39,10 +41,6 @@ class RobustWeiszfeldFactory(tff.aggregators.WeightedAggregationFactory):
     self._tolerance = tolerance
 
   def create(self, value_type, weight_type):
-
-    @tff.federated_computation()
-    def init_fn():
-      return tff.federated_value((), tff.SERVER)
 
     @tff.tf_computation(tf.float32, value_type, value_type)
     def update_weight_fn(weight, server_model, client_model):
