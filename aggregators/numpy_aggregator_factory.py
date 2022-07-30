@@ -49,6 +49,36 @@ class NumpyAggregationFactory(factory.WeightedAggregationFactory):
     return aggregation_process.AggregationProcess(init_fn, next_fn)
 
 
+class PreprocessedAggregationFactory(factory.WeightedAggregationFactory):
+  def __init__(self, aggregation_factory, preprocess):
+    self._aggregation_factory = aggregation_factory
+    self._preprocess = preprocess
+
+  def create(
+          self, value_type: factory.ValueType,
+          weight_type: factory.ValueType) -> aggregation_process.AggregationProcess:
+    _check_value_type(value_type)
+    py_typecheck.check_type(weight_type, factory.ValueType.__args__)
+
+    _aggregation_process = self._aggregation_factory.create()
+    _initialize_fn = _aggregation_process.initialize
+    _next_fn = _aggregation_process.next
+
+    @computations.tf_computation
+    def numpy_bridge(weights):
+      w = ds_to_array(weights)
+      return tf.reshape(tf.numpy_function(self._preprocess, [w], tf.float32), tf.shape(w)[1:])
+
+    @computations.federated_computation(
+      _initialize_fn.type_signature.result,
+      tff.FederatedType(value_type, tff.CLIENTS),
+      tff.FederatedType(weight_type, tff.CLIENTS))
+    def next_fn(state, value, weight):
+      return _next_fn(state, value, numpy_bridge(weight))
+
+    return aggregation_process.AggregationProcess(_initialize_fn, next_fn)
+
+
 def _check_value_type(value_type):
   py_typecheck.check_type(value_type, factory.ValueType.__args__)
   if not type_analysis.is_structure_of_floats(value_type):

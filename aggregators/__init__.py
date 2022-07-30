@@ -1,3 +1,3 @@
 from aggregators.numpy_aggregators import mean, median, trimmed_mean
-from aggregators.numpy_aggregator_factory import NumpyAggregationFactory
+from aggregators.numpy_aggregator_factory import NumpyAggregationFactory, PreprocessedAggregationFactory
 from aggregators.robust_weiszfeld_factory import RobustWeiszfeldFactory
