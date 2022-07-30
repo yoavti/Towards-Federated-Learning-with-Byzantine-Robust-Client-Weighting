@@ -52,12 +52,8 @@ class ByzantineWeightClientFedAvg(ByzantineClientFedAvg):
     return optimizer_utils.ClientOutput(weights_delta, weights_delta_weight, model_output, optimizer_output)
 
   @staticmethod
-  def model_to_client_delta_fn(
-      client_optimizer_fn,
-      *,
-      client_weighting=None,
-      use_experimental_simulation_loop=False,
-      byzantine_client_weight: int = 1_000_000):
+  def model_to_client_delta_fn(client_optimizer_fn, *, client_weighting=None, use_experimental_simulation_loop=False,
+                               byzantine_client_weight: int = 1_000_000):
     """Returns a function that accepts a model creation function and returns a `ClientDeltaFn` instance.
 
         Args:
