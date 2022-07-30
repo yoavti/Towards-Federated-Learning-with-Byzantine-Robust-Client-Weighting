@@ -8,18 +8,17 @@ from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from tff_patch import optimizer_utils
-from attacks.simple_heuristic_omniscient.base import SimpleHeuristicOmniscientAttack
+from attacks.collusion.base import CollusionAttack
 
 
-class SimpleHeuristicOmniscientAttackClientFedAvg(ByzantineWeightClientFedAvg):
-  """Client TensorFlow logic for Federated Averaging
-  with Byzantine clients using simple heuristic omniscient attacks."""
+class CollusionAttackClientFedAvg(ByzantineWeightClientFedAvg):
+  """Client TensorFlow logic for Federated Averaging with Byzantine clients using collusion attacks."""
 
   def __init__(self, model: model_lib.Model, optimizer: tf.keras.optimizers.Optimizer,
                client_weighting: Union[client_weight_lib.ClientWeightType,
                                        Callable[[Any], tf.Tensor]] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
                use_experimental_simulation_loop: bool = False, byzantine_client_weight: int = 1_000_000,
-               attack: Optional[SimpleHeuristicOmniscientAttack] = None):
+               attack: Optional[CollusionAttack] = None):
 
     super().__init__(model, optimizer, client_weighting, use_experimental_simulation_loop, byzantine_client_weight)
     self._attack = attack

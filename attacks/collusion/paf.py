@@ -1,8 +1,8 @@
 import tensorflow as tf
-from attacks.simple_heuristic_omniscient.base import SimpleHeuristicOmniscientAttack
+from attacks.collusion.base import CollusionAttack
 
 
-class ScalarPAFAttack(SimpleHeuristicOmniscientAttack):
+class ScalarPAFAttack(CollusionAttack):
   def __init__(self, scalar=100.):
     self._scalar = scalar
 
