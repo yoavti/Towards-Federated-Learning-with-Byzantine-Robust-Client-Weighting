@@ -1,5 +1,5 @@
 import tensorflow as tf
-from attacks.collusion.base import CollusionAttack
+from attacks.collusion.attack_funcs.base import CollusionAttack
 
 
 class DeltaToZeroAttack(CollusionAttack):

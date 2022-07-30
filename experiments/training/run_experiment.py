@@ -32,7 +32,7 @@ from preprocess import PREPROC_TRANSFORMS
 from aggregators import trimmed_mean, median, mean, NumpyAggregationFactory, PreprocessedAggregationFactory
 from flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
 
-from attacks.local import ATTACKS
+from attacks.local import LOCAL_ATTACKS
 from tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
 
 CLIENT_WEIGHTING = ['uniform', 'num_examples']
@@ -73,7 +73,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
 
   flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
 
-  flags.DEFINE_enum('attack', 'sign_flip', list(ATTACKS), 'select attack type')
+  flags.DEFINE_enum('attack', 'sign_flip', list(LOCAL_ATTACKS), 'select attack type')
   flags.DEFINE_float('num_byzantine', 0.1, 'select either the proportion or the number of byzantine clients', 0.0)
   flags.DEFINE_enum('byzantines_part_of', 'total', BYZANTINES_PART_OF,
                     'select whether num_clients are takes as part of the total amount of clients or in each round')
@@ -174,7 +174,7 @@ def configure_aggregator(train_data):
 
 
 def configure_attack():
-  attack_constructor = ATTACKS[FLAGS.attack]
+  attack_constructor = LOCAL_ATTACKS[FLAGS.attack]
   attack = attack_constructor()
   return attack
 

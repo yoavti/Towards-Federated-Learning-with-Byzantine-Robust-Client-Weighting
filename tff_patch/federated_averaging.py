@@ -35,7 +35,7 @@ from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from tff_patch import optimizer_utils
-from attacks.local.base import LocalAttack
+from attacks.local.attack_funcs.base import LocalAttack
 from tff_patch.byzantine_weight_client_fed_avg import ByzantineWeightClientFedAvg
 
 

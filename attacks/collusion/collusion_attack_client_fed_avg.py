@@ -8,7 +8,7 @@ from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from tff_patch import optimizer_utils
-from attacks.collusion.base import CollusionAttack
+from attacks.collusion.attack_funcs.base import CollusionAttack
 
 
 class CollusionAttackClientFedAvg(ByzantineWeightClientFedAvg):

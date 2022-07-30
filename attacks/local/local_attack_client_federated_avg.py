@@ -1,6 +1,6 @@
 from tff_patch.federated_averaging import ByzantineWeightClientFedAvg
 
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional
 
 import tensorflow as tf
 
@@ -8,7 +8,7 @@ from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from tff_patch import optimizer_utils
-from attacks.local.base import LocalAttack
+from attacks.local.attack_funcs.base import LocalAttack
 
 
 class LocalAttackClientFedAvg(ByzantineWeightClientFedAvg):
