@@ -5,4 +5,4 @@ from attacks.local.sign_flip import SignFlipAttack
 
 
 ATTACKS = {'constant': ConstantAttack, 'gaussian': GaussianAttack, 'random_sign_flip': RandomSignFlipAttack,
-           'sign_flip': SignFlipAttack}  # delta_to_zero
+           'sign_flip': SignFlipAttack}
