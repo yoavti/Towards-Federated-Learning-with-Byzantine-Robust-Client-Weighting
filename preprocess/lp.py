@@ -1,6 +1,6 @@
 import numpy as np
 from ortools.linear_solver.pywraplp import Solver
-from preprocess.utils import trunc_helpers, VectorMap
+from preprocess.utils import trunc_helpers, VectorMapMean
 
 
 def lp(N, *, alpha=0.1, alpha_star=0.5):
@@ -42,6 +42,6 @@ def lp(N, *, alpha=0.1, alpha_star=0.5):
   return ret
 
 
-class LP(VectorMap):
+class LP(VectorMapMean):
   def _vector_computation(self, N):
     return lp(N, alpha=self._alpha, alpha_star=self._alpha_star)

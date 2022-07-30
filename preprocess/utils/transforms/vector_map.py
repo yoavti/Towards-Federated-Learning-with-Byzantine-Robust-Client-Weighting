@@ -18,7 +18,6 @@ class VectorMap(Preprocess):
         self._vector_map[n] = []
       self._vector_map[n].append(n_)
     self._vector_map = {n: np.array(arr) for n, arr in self._vector_map.items()}
-    self._vector_map = {n: np.mean(arr) for n, arr in self._vector_map.items()}
 
   def transform(self, N):
     return np.vectorize(lambda n: self._vector_map.get(n, 0))(np.array(N))
