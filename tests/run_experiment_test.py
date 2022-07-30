@@ -17,11 +17,7 @@ import unittest
 
 from absl import app, flags
 
-from shared.google_tff_research.utils.task_utils import SUPPORTED_TASKS
-from shared.preprocess import PREPROC_TRANSFORMS
 from experiments.training import run_experiment
-from experiments.training.attacks.local import ATTACKS
-from experiments.training.run_experiment import CLIENT_WEIGHTING, AGGREGATORS, BYZANTINES_PART_OF
 
 FLAGS = flags.FLAGS
 
@@ -53,15 +49,6 @@ def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean',
 class RunExperimentTest(unittest.TestCase):
   def test_shakespeare(self):
     test_run_experiment('shakespeare_character')
-
-  def test_all_configurations(self):
-    for task in SUPPORTED_TASKS:
-      for weight_preproc in CLIENT_WEIGHTING + list(PREPROC_TRANSFORMS):
-        for aggregation in AGGREGATORS:
-          for attack in list(ATTACKS):
-            for num_byzantine in [0.1, 2.]:
-              for byzantines_part_of in BYZANTINES_PART_OF:
-                test_run_experiment(task, weight_preproc, aggregation, attack, num_byzantine, byzantines_part_of)
 
 
 if __name__ == '__main__':
