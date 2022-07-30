@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import unittest
-from experiments.preprocess_comparison.load import get_client_weights
-from shared.preprocess import LP, Truncate
-from shared.preprocess.utils import maximal_weight_proportion
+from load import get_client_weights
+from preprocess import LP, Truncate
+from preprocess.utils import maximal_weight_proportion
 
 
 ALPHA = 0.1

@@ -26,15 +26,14 @@ from absl import app, flags
 from tensorflow_federated.python.learning import ClientWeighting
 from tensorflow_federated.python.simulation.baselines import ClientSpec
 
-from shared.google_tff_research.utils import training_loop, utils_impl, task_utils
-from shared.google_tff_research.utils.optimizers import optimizer_utils
-from shared.preprocess import PREPROC_TRANSFORMS
-from shared.aggregators import trimmed_mean, median, mean
-from shared.flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
+from google_tff_research.utils import task_utils, utils_impl, training_loop
+from google_tff_research.utils.optimizers import optimizer_utils
+from preprocess import PREPROC_TRANSFORMS
+from aggregators import trimmed_mean, median, mean, NumpyAggregationFactory, PreprocessedAggregationFactory
+from flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
 
-from experiments.training.attacks.local import ATTACKS
-from experiments.training.tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
-from experiments.training.numpy_aggr import NumpyAggrFactory
+from attacks.local import ATTACKS
+from tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
 
 CLIENT_WEIGHTING = ['uniform', 'num_examples']
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']
@@ -161,19 +160,16 @@ def configure_aggregator(train_data):
     if FLAGS.byzantines_part_of == 'total':
       preproc_transform.fit(train_data.datasets())
 
-    def aggregate_with_preproc(points, weights):
-      if FLAGS.byzantines_part_of == 'total':
-        weights = preproc_transform.transform(weights)
-      elif FLAGS.byzantines_part_of == 'round':
-        weights = preproc_transform.fit_transform(weights)
-      return inner_aggregator(points, weights)
+    preprocesses = {'total': lambda weights: preproc_transform.transform(weights),
+                    'round': lambda weights: preproc_transform.fit_transform(weights)}
 
-    aggregator = NumpyAggrFactory(aggregate_with_preproc)
+    PreprocessedAggregationFactory(NumpyAggregationFactory(inner_aggregator),
+                                   preprocesses[FLAGS.byzantines_part_of])
   else:
     if FLAGS.aggregation == 'mean':
       aggregator = None  # defaults to reduce mean
     else:
-      aggregator = NumpyAggrFactory(inner_aggregator)
+      aggregator = NumpyAggregationFactory(inner_aggregator)
   return aggregator
 
 

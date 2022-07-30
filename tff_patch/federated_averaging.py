@@ -39,8 +39,8 @@ from tensorflow_federated.python.learning import model_utils
 from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
-from experiments.training.tff_patch import optimizer_utils
-from experiments.training.attacks.local.base import LocalAttack
+from tff_patch import optimizer_utils
+from attacks.local.base import LocalAttack
 
 
 ClientWeightFnType = Callable[[Any], tf.Tensor]

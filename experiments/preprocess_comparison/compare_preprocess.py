@@ -1,13 +1,13 @@
 from absl import app, flags
 from pprint import PrettyPrinter
 
-from experiments.preprocess_comparison.comparison_utils import plot_weights, available_metrics
-from experiments.preprocess_comparison.load import dataset_modules, get_client_weights
+from experiments.preprocess_comparison.utils.comparison_utils import plot_weights, available_metrics
+from load import dataset_modules, get_client_weights
 
-from shared.google_tff_research.utils import utils_impl
-from shared.preprocess import PREPROC_TRANSFORMS
-from shared.preprocess.utils import is_valid_solution, maximal_weight_proportion
-from shared.flags_validators import create_optional_validator, check_positive, check_proportion
+from google_tff_research.utils import utils_impl
+from preprocess import PREPROC_TRANSFORMS
+from preprocess.utils import is_valid_solution, maximal_weight_proportion
+from flags_validators import create_optional_validator, check_positive, check_proportion
 
 pp = PrettyPrinter()
 

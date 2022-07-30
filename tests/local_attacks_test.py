@@ -14,7 +14,7 @@
 
 import unittest
 import numpy as np
-from experiments.training.attacks.local import ConstantAttack, SignFlipAttack
+from attacks.local import ConstantAttack, SignFlipAttack
 
 
 def gen_rand_vec(dn=10):
