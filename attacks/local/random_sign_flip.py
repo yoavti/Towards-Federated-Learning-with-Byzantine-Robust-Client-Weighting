@@ -1,6 +1,6 @@
 import random
 import tensorflow as tf
-from experiments.training.attacks.local.base import LocalAttack
+from attacks.local.base import LocalAttack
 
 
 class RandomSignFlipAttack(LocalAttack):

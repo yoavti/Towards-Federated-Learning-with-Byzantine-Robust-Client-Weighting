@@ -26,14 +26,14 @@ from absl import app, flags
 from tensorflow_federated.python.learning import ClientWeighting
 from tensorflow_federated.python.simulation.baselines import ClientSpec
 
-from shared.google_tff_research.utils import training_loop, utils_impl, task_utils
-from shared.google_tff_research.utils.optimizers import optimizer_utils
-from shared.preprocess import PREPROC_TRANSFORMS
-from shared.aggregators import trimmed_mean, median, mean, NumpyAggregationFactory
-from shared.flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
+from google_tff_research.utils import task_utils, utils_impl, training_loop
+from google_tff_research.utils.optimizers import optimizer_utils
+from preprocess import PREPROC_TRANSFORMS
+from aggregators import trimmed_mean, median, mean, NumpyAggregationFactory
+from flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
 
-from experiments.training.attacks.local import ATTACKS
-from experiments.training.tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
+from attacks.local import ATTACKS
+from tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
 
 CLIENT_WEIGHTING = ['uniform', 'num_examples']
 AGGREGATORS = ['mean', 'median', 'trimmed_mean']

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import unittest
-from shared.aggregators import mean, median, trimmed_mean
+from aggregators import mean, median, trimmed_mean
 
 
 class AggregatorsTest(unittest.TestCase):

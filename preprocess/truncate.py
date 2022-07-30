@@ -1,6 +1,6 @@
 import numpy as np
 from math import isclose
-from shared.preprocess.utils import trunc_helpers, maximal_weight_proportion, is_valid_solution, Preprocess
+from preprocess.utils import trunc_helpers, maximal_weight_proportion, is_valid_solution, Preprocess
 
 
 def _trunc(vec, threshold):

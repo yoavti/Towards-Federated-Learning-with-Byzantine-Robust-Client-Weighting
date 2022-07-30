@@ -1,6 +1,6 @@
 import numpy as np
 from ortools.linear_solver.pywraplp import Solver
-from shared.preprocess.utils import trunc_helpers, VectorMap
+from preprocess.utils import trunc_helpers, VectorMap
 
 
 def lp(N, *, alpha=0.1, alpha_star=0.5):
