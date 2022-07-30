@@ -46,8 +46,8 @@ from attacks.local.base import LocalAttack
 ClientWeightFnType = Callable[[Any], tf.Tensor]
 
 
-class ClientFedAvg(optimizer_utils.ClientDeltaFn):
-  """Client TensorFlow logic for Federated Averaging."""
+class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
+  """Client TensorFlow logic for Federated Averaging with Byzantine clients."""
 
   def __init__(
       self,
@@ -55,9 +55,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
       optimizer: tf.keras.optimizers.Optimizer,
       client_weighting: Union[client_weight_lib.ClientWeightType,
                               ClientWeightFnType] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
-      use_experimental_simulation_loop: bool = False,
-      byzantine_client_weight: int = 1_000_000,
-      attack: Optional[LocalAttack] = None):
+      use_experimental_simulation_loop: bool = False):
     """Creates the client computation for Federated Averaging.
 
     Note: All variable creation required for the client computation (e.g. model
@@ -73,8 +71,6 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
         provides the weight in the federated average of model deltas.
       use_experimental_simulation_loop: Controls the reduce loop function for
         input dataset. An experimental reduce loop is used for simulation.
-      byzantine_client_weight: Number of samples each Byzantine client reports.
-      attack: An optional `LocalAttack` that specifies which Byzantine attack takes place.
     """
     py_typecheck.check_type(model, model_lib.Model)
     self._model = model_utils.enhance(model)
@@ -84,10 +80,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
       raise TypeError('`client_weighting` must be either instance of `ClientWeighting` or callable. '
                       f'Found type {type(client_weighting)}.')
     self._client_weighting = client_weighting
-
     self._dataset_reduce_fn = dataset_reduce.build_dataset_reduce_fn(use_experimental_simulation_loop)
-    self._byzantine_client_weight = byzantine_client_weight
-    self._attack = attack
 
   @property
   def variables(self):
@@ -97,8 +90,7 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
   def __call__(self, dataset_with_byzflag, initial_weights):
     model = self._model
     optimizer = self._optimizer
-    tf.nest.map_structure(lambda a, b: a.assign(b), model.weights,
-                          initial_weights)
+    tf.nest.map_structure(lambda a, b: a.assign(b), model.weights, initial_weights)
 
     def reduce_fn(num_examples_sum, batch):
       """Train `tff.learning.Model` on local client batch."""
@@ -116,44 +108,52 @@ class ClientFedAvg(optimizer_utils.ClientDeltaFn):
 
     dataset, byzflag = dataset_with_byzflag
 
-    num_examples_sum = self._dataset_reduce_fn(
-        reduce_fn,
-        dataset,
-        initial_state_fn=lambda: tf.zeros(shape=[], dtype=tf.int64))
+    num_examples_sum = self._dataset_reduce_fn(reduce_fn, dataset,
+                                               initial_state_fn=lambda: tf.zeros(shape=[], dtype=tf.int64))
 
-    weights_delta = tf.nest.map_structure(tf.subtract, model.weights.trainable,
-                                          initial_weights.trainable)
+    weights_delta = tf.nest.map_structure(tf.subtract, model.weights.trainable, initial_weights.trainable)
     model_output = model.report_local_outputs()
 
-    if byzflag:
-      # delta to zero attack
-      # weights_delta = tf.nest.map_structure(lambda _: -_, initial_weights.trainable)
-      weights_delta = self._attack(weights_delta)
-
-    # TODO(b/122071074): Consider moving this functionality into
-    # tff.federated_mean?
-    weights_delta, has_non_finite_delta = (
-        tensor_utils.zero_all_if_any_non_finite(weights_delta))
+    weights_delta, has_non_finite_delta = tensor_utils.zero_all_if_any_non_finite(weights_delta)
     # Zero out the weight if there are any non-finite values.
     if has_non_finite_delta > 0:
-      # TODO(b/176171842): Zeroing has no effect with unweighted aggregation.
       weights_delta_weight = tf.constant(0.0)
     elif self._client_weighting is client_weight_lib.ClientWeighting.NUM_EXAMPLES:
-      if byzflag:
-        weights_delta_weight = tf.cast(self._byzantine_client_weight, tf.float32)
-      else:
-        weights_delta_weight = tf.cast(num_examples_sum, tf.float32)
+      weights_delta_weight = tf.cast(num_examples_sum, tf.float32)
     elif self._client_weighting is client_weight_lib.ClientWeighting.UNIFORM:
       weights_delta_weight = tf.constant(1.0)
     else:
-      if byzflag:
-        weights_delta_weight = self._client_weighting({key: self._byzantine_client_weight for key in model_output})
-      else:
-        weights_delta_weight = self._client_weighting(model_output)
-    # TODO(b/176245976): TFF `ClientOutput` structure names are confusing.
+      weights_delta_weight = self._client_weighting(model_output)
     optimizer_output = collections.OrderedDict(num_examples=num_examples_sum)
     return optimizer_utils.ClientOutput(weights_delta, weights_delta_weight,
                                         model_output, optimizer_output)
+
+
+class ByzantineWeightClientFedAvg(ByzantineClientFedAvg):
+  """Client TensorFlow logic for Federated Averaging with Byzantine clients that report their weight to the server."""
+
+  def __init__(self, model: model_lib.Model, optimizer: tf.keras.optimizers.Optimizer,
+               client_weighting: Union[client_weight_lib.ClientWeightType,
+                                       ClientWeightFnType] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
+               use_experimental_simulation_loop: bool = False, byzantine_client_weight: int = 1_000_000):
+    super().__init__(model, optimizer, client_weighting, use_experimental_simulation_loop)
+    self._byzantine_client_weight = byzantine_client_weight
+
+  @tf.function
+  def __call__(self, dataset_with_byzflag, initial_weights):
+    client_output = super().__call__(dataset_with_byzflag, initial_weights)
+    weights_delta = client_output.weights_delta
+    weights_delta_weight = client_output.weights_delta_weight
+    model_output = client_output.model_output
+    optimizer_output = client_output.optimizer_output
+    dataset, byzflag = dataset_with_byzflag
+
+    if byzflag:
+      if self._client_weighting is client_weight_lib.ClientWeighting.NUM_EXAMPLES:
+        weights_delta_weight = tf.cast(self._byzantine_client_weight, tf.float32)
+      elif self._client_weighting is not client_weight_lib.ClientWeighting.UNIFORM:
+        weights_delta_weight = self._client_weighting({key: self._byzantine_client_weight for key in model_output})
+    return optimizer_utils.ClientOutput(weights_delta, weights_delta_weight, model_output, optimizer_output)
 
 
 DEFAULT_SERVER_OPTIMIZER_FN = lambda: tf.keras.optimizers.SGD(learning_rate=1.0)
@@ -287,9 +287,9 @@ def build_federated_averaging_process(
         'tutorials for details of use of tff.aggregators module.',
         DeprecationWarning)
 
-  def client_fed_avg(model_fn: Callable[[], model_lib.Model]) -> ClientFedAvg:
-    return ClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting,
-                        use_experimental_simulation_loop, byzantine_client_weight, attack)
+  def client_fed_avg(model_fn: Callable[[], model_lib.Model]) -> ByzantineClientFedAvg:
+    return ByzantineWeightClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting,
+                                       use_experimental_simulation_loop, byzantine_client_weight)
 
   iter_proc = optimizer_utils.build_model_delta_optimizer_process(
       model_fn,
