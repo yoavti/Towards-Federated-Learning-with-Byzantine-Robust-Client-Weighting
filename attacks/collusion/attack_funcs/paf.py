@@ -7,4 +7,4 @@ class ScalarPAFAttack(CollusionAttack):
     self._scalar = scalar
 
   def __call__(self, trainable_initial_weights):
-    return tf.nest.map_structure(lambda _: _ - _ + self._scalar, trainable_initial_weights)
+    return tf.nest.map_structure(lambda _: _ + self._scalar, trainable_initial_weights)
