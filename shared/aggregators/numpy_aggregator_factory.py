@@ -9,7 +9,7 @@ from tensorflow_federated.python.core.templates import aggregation_process
 from tensorflow_federated.python.core.templates import measured_process
 
 
-class NumpyAggrFactory(factory.WeightedAggregationFactory):
+class NumpyAggregationFactory(factory.WeightedAggregationFactory):
   def __init__(self, numpy_fn):
     self._numpy_fn = numpy_fn
 
