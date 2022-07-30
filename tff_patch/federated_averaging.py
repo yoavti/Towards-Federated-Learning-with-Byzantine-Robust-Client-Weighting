@@ -43,9 +43,6 @@ from tff_patch import optimizer_utils
 from attacks.local.base import LocalAttack
 
 
-ClientWeightFnType = Callable[[Any], tf.Tensor]
-
-
 class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
   """Client TensorFlow logic for Federated Averaging with Byzantine clients."""
 
@@ -54,7 +51,7 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
       model: model_lib.Model,
       optimizer: tf.keras.optimizers.Optimizer,
       client_weighting: Union[client_weight_lib.ClientWeightType,
-                              ClientWeightFnType] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
+                              Callable[[Any], tf.Tensor]] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
       use_experimental_simulation_loop: bool = False):
     """Creates the client computation for Federated Averaging.
 
@@ -134,7 +131,7 @@ class ByzantineWeightClientFedAvg(ByzantineClientFedAvg):
 
   def __init__(self, model: model_lib.Model, optimizer: tf.keras.optimizers.Optimizer,
                client_weighting: Union[client_weight_lib.ClientWeightType,
-                                       ClientWeightFnType] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
+                                       Callable[[Any], tf.Tensor]] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
                use_experimental_simulation_loop: bool = False, byzantine_client_weight: int = 1_000_000):
     super().__init__(model, optimizer, client_weighting, use_experimental_simulation_loop)
     self._byzantine_client_weight = byzantine_client_weight
@@ -167,7 +164,7 @@ def build_federated_averaging_process(
     server_optimizer_fn: Callable[
         [], tf.keras.optimizers.Optimizer] = DEFAULT_SERVER_OPTIMIZER_FN,
     *,  # Require named (non-positional) parameters for the following kwargs:
-    client_weighting: Optional[Union[client_weight_lib.ClientWeightType, ClientWeightFnType]] = None,
+    client_weighting: Optional[Union[client_weight_lib.ClientWeightType, Callable[[Any], tf.Tensor]]] = None,
     broadcast_process: Optional[measured_process.MeasuredProcess] = None,
     aggregation_process: Optional[measured_process.MeasuredProcess] = None,
     model_update_aggregation_factory: Optional[
