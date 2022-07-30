@@ -1,5 +1,5 @@
 import tensorflow as tf
-from attacks.local.base import LocalAttack
+from attacks.local.attack_funcs.base import LocalAttack
 
 
 class SignFlipAttack(LocalAttack):

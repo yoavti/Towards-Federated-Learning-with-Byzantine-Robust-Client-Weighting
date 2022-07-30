@@ -24,7 +24,8 @@ def gen_rand_vec(dn=10):
 class LocalAttacksTest(unittest.TestCase):
   def test_constant(self):
     const = 100
-    np.testing.assert_array_almost_equal(const, ConstantAttack(const)(gen_rand_vec()))
+    v = gen_rand_vec()
+    np.testing.assert_array_almost_equal(np.full_like(v, const), ConstantAttack(const)(v))
 
   def test_sign_flip(self):
     v = gen_rand_vec()
