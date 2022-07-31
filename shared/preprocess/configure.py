@@ -11,6 +11,8 @@ def configure_preprocess(preprocess_spec: PreprocessSpec):
   alpha_star = preprocess_spec.alpha_star
   all_weights = preprocess_spec.all_weights
 
+  if weight_preproc not in PREPROC_TRANSFORMS:
+    return None
   preproc_transform = PREPROC_TRANSFORMS[weight_preproc](alpha=alpha, alpha_star=alpha_star)
   if byzantines_part_of == 'total':
     if not all_weights:
@@ -18,5 +20,4 @@ def configure_preprocess(preprocess_spec: PreprocessSpec):
     all_weights = np.array(all_weights)
     preproc_transform.fit(all_weights)
   preprocess_func = PREPROCESS_FUNC_CREATORS[byzantines_part_of](preproc_transform)
-
   return preprocess_func
