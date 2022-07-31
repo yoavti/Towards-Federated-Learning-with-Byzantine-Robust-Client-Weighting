@@ -2,7 +2,7 @@ from absl import app, flags
 from pprint import PrettyPrinter
 
 from experiments.preprocess_comparison.utils.comparison_utils import plot_weights, available_metrics
-from shared.load import dataset_modules, get_client_weights
+from shared.load import DATASET_MODULES, get_client_weights
 
 from shared.google_tff_research.utils import utils_impl
 from shared.preprocess import PREPROC_TRANSFORMS
@@ -13,7 +13,7 @@ pp = PrettyPrinter()
 
 
 with utils_impl.record_hparam_flags() as comparison_flags:
-  flags.DEFINE_enum('dataset', 'emnist', list(dataset_modules), 'Which dataset to take weights from.')
+  flags.DEFINE_enum('dataset', 'emnist', list(DATASET_MODULES), 'Which dataset to take weights from.')
   flags.DEFINE_integer('limit_count', None, 'Number of weights to take from dataset.')
   flags.DEFINE_multi_enum('preprocess_funcs', list(PREPROC_TRANSFORMS), list(PREPROC_TRANSFORMS),
                           'What to do with the clients\' relative weights.')
