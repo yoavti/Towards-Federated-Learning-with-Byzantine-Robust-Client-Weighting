@@ -6,7 +6,7 @@ from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from shared.attacks.base_client_fed_avg import ByzantineWeightClientFedAvg
-from shared.tff_patch import optimizer_utils
+from shared.tff_patch.federated_averaging import ClientOutput, ClientDeltaFn
 from shared.attacks.collusion import CollusionAttack
 
 
@@ -47,7 +47,7 @@ class CollusionAttackClientFedAvg(ByzantineWeightClientFedAvg):
 
     if byzflag and self._attack is not None:
       weights_delta = self._attack(initial_weights.trainable)
-    return optimizer_utils.ClientOutput(weights_delta, weights_delta_weight, model_output, optimizer_output)
+    return ClientOutput(weights_delta, weights_delta_weight, model_output, optimizer_output)
 
   @staticmethod
   def model_to_client_delta_fn(client_optimizer_fn, *, client_weighting=client_weight_lib.ClientWeighting.NUM_EXAMPLES,
@@ -67,7 +67,7 @@ class CollusionAttackClientFedAvg(ByzantineWeightClientFedAvg):
         Returns:
           A function that accepts a model creation function and returns a `ClientDeltaFn` instance."""
 
-    def ret(model_fn: Callable[[], model_lib.Model]) -> optimizer_utils.ClientDeltaFn:
+    def ret(model_fn: Callable[[], model_lib.Model]) -> ClientDeltaFn:
       return CollusionAttackClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting, byzantine_client_weight,
                                          attack)
 

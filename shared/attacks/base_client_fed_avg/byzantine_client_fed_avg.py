@@ -11,10 +11,10 @@ from tensorflow_federated.python.learning import model_utils
 from tensorflow_federated.python.learning.framework import dataset_reduce
 from tensorflow_federated.python.tensorflow_libs import tensor_utils
 
-from shared.tff_patch import optimizer_utils
+from shared.tff_patch.federated_averaging import ClientOutput, ClientDeltaFn
 
 
-class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
+class ByzantineClientFedAvg(ClientDeltaFn):
   """Client TensorFlow logic for Federated Averaging with Byzantine clients."""
 
   def __init__(
@@ -90,8 +90,7 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
     else:
       weights_delta_weight = self._client_weighting(model_output)
     optimizer_output = collections.OrderedDict(num_examples=num_examples_sum)
-    return optimizer_utils.ClientOutput(weights_delta, weights_delta_weight,
-                                        model_output, optimizer_output)
+    return ClientOutput(weights_delta, weights_delta_weight, model_output, optimizer_output)
 
   @staticmethod
   def model_to_client_delta_fn(
@@ -99,7 +98,7 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
       *,
       client_weighting: Union[client_weight_lib.ClientWeightType,
                               Callable[[Any], tf.Tensor]] = client_weight_lib.ClientWeighting.NUM_EXAMPLES
-  ) -> Callable[[Callable[[], model_lib.Model]], optimizer_utils.ClientDeltaFn]:
+  ) -> Callable[[Callable[[], model_lib.Model]], ClientDeltaFn]:
     """Returns a function that accepts a model creation function and returns a `ClientDeltaFn` instance.
 
         Args:
@@ -113,7 +112,7 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
         Returns:
           A function that accepts a model creation function and returns a `ClientDeltaFn` instance."""
 
-    def ret(model_fn: Callable[[], model_lib.Model]) -> optimizer_utils.ClientDeltaFn:
+    def ret(model_fn: Callable[[], model_lib.Model]) -> ClientDeltaFn:
       return ByzantineClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting)
 
     return ret
