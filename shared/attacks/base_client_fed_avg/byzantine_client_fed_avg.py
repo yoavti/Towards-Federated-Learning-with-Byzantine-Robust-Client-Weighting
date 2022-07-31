@@ -1,6 +1,6 @@
 import collections
 
-from typing import Callable, Optional, Any, Union
+from typing import Callable, Any, Union
 
 import tensorflow as tf
 
@@ -22,8 +22,7 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
       model: model_lib.Model,
       optimizer: tf.keras.optimizers.Optimizer,
       client_weighting: Union[client_weight_lib.ClientWeightType,
-                              Callable[[Any], tf.Tensor]] = client_weight_lib.ClientWeighting.NUM_EXAMPLES,
-      use_experimental_simulation_loop: bool = False):
+                              Callable[[Any], tf.Tensor]] = client_weight_lib.ClientWeighting.NUM_EXAMPLES):
     """Creates the client computation for Federated Averaging.
 
     Note: All variable creation required for the client computation (e.g. model
@@ -37,8 +36,6 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
         specifies a built-in weighting method, or a callable that takes the
         output of `model.report_local_outputs` and returns a tensor that
         provides the weight in the federated average of model deltas.
-      use_experimental_simulation_loop: Controls the reduce loop function for
-        input dataset. An experimental reduce loop is used for simulation.
     """
     py_typecheck.check_type(model, model_lib.Model)
     self._model = model_utils.enhance(model)
@@ -48,7 +45,7 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
       raise TypeError('`client_weighting` must be either instance of `ClientWeighting` or callable. '
                       f'Found type {type(client_weighting)}.')
     self._client_weighting = client_weighting
-    self._dataset_reduce_fn = dataset_reduce.build_dataset_reduce_fn(use_experimental_simulation_loop)
+    self._dataset_reduce_fn = dataset_reduce.build_dataset_reduce_fn(False)
 
   @property
   def variables(self):
@@ -100,9 +97,9 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
   def model_to_client_delta_fn(
       client_optimizer_fn: Callable[[], tf.keras.optimizers.Optimizer],
       *,
-      client_weighting: Optional[Union[client_weight_lib.ClientWeightType, Callable[[Any], tf.Tensor]]] = None,
-      use_experimental_simulation_loop: bool = False) -> Callable[[Callable[[], model_lib.Model]],
-                                                                  optimizer_utils.ClientDeltaFn]:
+      client_weighting: Union[client_weight_lib.ClientWeightType,
+                              Callable[[Any], tf.Tensor]] = client_weight_lib.ClientWeighting.NUM_EXAMPLES
+  ) -> Callable[[Callable[[], model_lib.Model]], optimizer_utils.ClientDeltaFn]:
     """Returns a function that accepts a model creation function and returns a `ClientDeltaFn` instance.
 
         Args:
@@ -112,16 +109,11 @@ class ByzantineClientFedAvg(optimizer_utils.ClientDeltaFn):
             `model.report_local_outputs` and returns a tensor that provides the weight
             in the federated average of model deltas. If None, defaults to weighting
             by number of examples.
-          use_experimental_simulation_loop: Controls the reduce loop function for
-              input dataset. An experimental reduce loop is used for simulation.
-              It is currently necessary to set this flag to True for performant GPU
-              simulations.
 
         Returns:
           A function that accepts a model creation function and returns a `ClientDeltaFn` instance."""
 
     def ret(model_fn: Callable[[], model_lib.Model]) -> optimizer_utils.ClientDeltaFn:
-      return ByzantineClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting,
-                                   use_experimental_simulation_loop)
+      return ByzantineClientFedAvg(model_fn(), client_optimizer_fn(), client_weighting)
 
     return ret
