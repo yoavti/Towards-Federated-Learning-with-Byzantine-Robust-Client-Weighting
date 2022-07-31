@@ -9,7 +9,7 @@ DATASET_MODULES = {'cifar100': tff.simulation.datasets.cifar100,
                    'stackoverflow': tff.simulation.datasets.stackoverflow}
 
 
-def client_datasets_to_weights(client_datasets):
+def extract_weights(client_datasets):
   weights = [len(list(client_dataset)) for client_dataset in client_datasets]
   weights = np.array(weights)
   return weights
@@ -19,5 +19,5 @@ def get_client_weights(name, limit_count=None):
   module = DATASET_MODULES[name]
   dataset = module.load_data()[0]
   client_datasets = dataset.datasets(limit_count=limit_count)
-  weights = client_datasets_to_weights(client_datasets)
+  weights = extract_weights(client_datasets)
   return weights
