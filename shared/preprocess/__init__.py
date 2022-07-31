@@ -1,4 +1,2 @@
-from shared.preprocess.lp import LP
-from shared.preprocess.truncate import Truncate
-
-PREPROC_TRANSFORMS = {'truncate': Truncate, 'lp': LP}
+from shared.preprocess.methods.lp import LP
+from shared.preprocess.methods.dict import PREPROC_TRANSFORMS
