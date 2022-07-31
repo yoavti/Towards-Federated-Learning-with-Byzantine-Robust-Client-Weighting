@@ -16,7 +16,7 @@ import unittest
 
 import numpy as np
 
-from shared.client_weights import get_client_weights
+from shared.extract_client_weights import get_client_weights
 from shared.preprocess import LP, Truncate
 from shared.preprocess.utils import maximal_weight_proportion
 

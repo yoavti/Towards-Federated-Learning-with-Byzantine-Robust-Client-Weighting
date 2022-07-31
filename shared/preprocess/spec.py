@@ -1,11 +1,10 @@
 import attr
-import numpy as np
-from typing import Optional
+from typing import Optional, Iterable
 from shared.flags_validators import add_exception, create_in_validator, check_proportion
+from shared.preprocess.methods.dict import PREPROC_TRANSFORMS
 
 
-WEIGHT_PREPROCS = ['weight_preproc']
-BYZANTINES_PART_OF = ['total']
+BYZANTINES_PART_OF = {'total', 'round'}
 
 
 @attr.s(eq=False, order=False, frozen=True)
@@ -13,7 +12,7 @@ class PreprocessSpec(object):
   """Contains information for configuring attacks."""
   weight_preproc: str = attr.ib(
     default='weight_preproc',
-    validator=[attr.validators.instance_of(str), add_exception(create_in_validator(WEIGHT_PREPROCS))])
+    validator=[attr.validators.instance_of(str), add_exception(create_in_validator({'num_examples'}))])
   """A string specifying what to do with the clients' relative weights."""
   byzantines_part_of: str = attr.ib(
     default='byzantines_part_of',
@@ -29,7 +28,6 @@ class PreprocessSpec(object):
     default=0.1,
     validator=[attr.validators.instance_of(float), add_exception(check_proportion)])
   """A float specifying Byzantine weight proportion."""
-  all_weights: Optional[np.ndarray] = attr.ib(
-    default=None,
-    validator=attr.validators.optional(attr.validators.instance_of(np.ndarray)))
-  """An optional ndarray containing the weights of all clients."""
+  all_weights: Optional[Iterable[int]] = attr.ib(
+    default=None)
+  """A generator client weights."""

@@ -3,7 +3,7 @@ from absl import app, flags
 from pprint import PrettyPrinter
 
 from experiments.preprocess_comparison.utils.comparison_utils import plot_weights, available_metrics
-from shared.client_weights import DATASET_MODULES, get_client_weights
+from shared.extract_client_weights import DATASET_MODULES, get_client_weights
 
 from shared.google_tff_research.utils import utils_impl
 from shared.preprocess import PREPROC_TRANSFORMS
