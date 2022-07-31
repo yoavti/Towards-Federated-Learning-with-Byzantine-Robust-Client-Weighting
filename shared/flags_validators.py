@@ -33,7 +33,7 @@ def create_in_validator(items):
 
 
 def add_exception(validator, msg='Argument validation failed'):
-  def ret(_, value):
+  def ret(instance, attribute, value):
     if not validator(value):
       raise ValueError(msg)
   return ret
