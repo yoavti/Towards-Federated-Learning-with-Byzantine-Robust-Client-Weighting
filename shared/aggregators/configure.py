@@ -7,7 +7,7 @@ from shared.aggregators.factory.preprocessed_aggregation_factory import Preproce
 from shared.aggregators.options import NUMPY_AGGREGATORS
 
 
-def configure_inner_aggregator(aggregation, alpha):
+def _configure_inner_aggregator(aggregation, alpha):
   if aggregation == 'mean':
     return mean
   elif aggregation == 'median':
@@ -19,10 +19,10 @@ def configure_inner_aggregator(aggregation, alpha):
   return mean
 
 
-def configure_numpy_aggregator(aggregation, preprocess, alpha):
+def _configure_numpy_aggregator(aggregation, preprocess, alpha):
   if not preprocess and aggregation == 'mean':
     return None
-  inner_aggregator = configure_inner_aggregator(aggregation, alpha)
+  inner_aggregator = _configure_inner_aggregator(aggregation, alpha)
   aggregation_factory = NumpyAggregationFactory(inner_aggregator)
   return aggregation_factory
 
@@ -33,7 +33,7 @@ def configure_aggregator(aggregator_spec: AggregatorSpec):
   alpha = aggregator_spec.alpha
 
   if aggregation in NUMPY_AGGREGATORS:
-    aggregation_factory = configure_numpy_aggregator(aggregation, preprocess, alpha)
+    aggregation_factory = _configure_numpy_aggregator(aggregation, preprocess, alpha)
   elif aggregation == 'rsa':
     aggregation_factory = RobustWeiszfeldFactory()
   else:
