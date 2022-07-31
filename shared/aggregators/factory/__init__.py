@@ -1,0 +1,3 @@
+from shared.aggregators.factory.numpy_aggregation_factory import NumpyAggregationFactory
+from shared.aggregators.factory.preprocessed_aggregation_factory import PreprocessedAggregationFactory
+from shared.aggregators.factory.robust_weiszfeld_factory import RobustWeiszfeldFactory

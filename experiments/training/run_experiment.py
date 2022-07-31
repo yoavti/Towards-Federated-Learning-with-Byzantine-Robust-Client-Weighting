@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
 import os
 
 import numpy as np
@@ -23,21 +22,30 @@ import tensorflow_federated as tff
 
 from absl import app, flags
 
-from tensorflow_federated.python.learning import ClientWeighting
+from shared.google_tff_research.utils import task_utils, utils_impl, training_loop
+from shared.google_tff_research.utils.optimizers import optimizer_utils
+
+from shared.flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
+from shared.extract_client_weights import extract_weights
+from shared.tff_patch.federated_averaging import build_model_delta_optimizer_process
+from shared.tff_patch.iterative_process_compositions import compose_dataset_computation_with_iterative_process
+
+from shared.aggregators.spec import AggregatorSpec
+from shared.attacks.spec import AttackSpec
+from shared.preprocess.spec import PreprocessSpec
+from shared.client_weighting.spec import ClientWeightingSpec
 from tensorflow_federated.python.simulation.baselines import ClientSpec
 
-from google_tff_research.utils import task_utils, utils_impl, training_loop
-from google_tff_research.utils.optimizers import optimizer_utils
-from preprocess import PREPROC_TRANSFORMS
-from aggregators import trimmed_mean, median, mean, NumpyAggregationFactory, PreprocessedAggregationFactory
-from flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
+from shared.aggregators.configure import configure_aggregator
+from shared.attacks.configure import configure_attack
+from shared.preprocess.configure import configure_preprocess
+from shared.client_weighting.configure import configure_client_weight
 
-from attacks.local import LOCAL_ATTACKS
-from tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
-
-CLIENT_WEIGHTING = ['uniform', 'num_examples']
-AGGREGATORS = ['mean', 'median', 'trimmed_mean']
-BYZANTINES_PART_OF = ['total', 'round']
+from shared.attacks.local import LOCAL_ATTACKS
+from shared.aggregators import ALL_AGGREGATORS
+from shared.client_weighting import CLIENT_WEIGHTING
+from shared.preprocess import PREPROC_TRANSFORMS
+from shared.byzantines_part_of import BYZANTINES_PART_OF
 
 with utils_impl.record_hparam_flags() as optimizer_flags:
   # Defining optimizer flags
@@ -68,11 +76,11 @@ with utils_impl.record_hparam_flags() as shared_flags:
                        'How often to checkpoint the global model.')
 
   # Parameters specific for our paper
-  flags.DEFINE_enum('weight_preproc', 'num_examples', CLIENT_WEIGHTING + list(PREPROC_TRANSFORMS),
+  flags.DEFINE_enum('client_weighting', 'num_examples', CLIENT_WEIGHTING,
                     'What to do with the clients\' relative weights.')
-
-  flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
-
+  flags.DEFINE_enum('weight_preproc', 'none', list(PREPROC_TRANSFORMS) + ['none'],
+                    'Whether to use the clients\' weight or not.')
+  flags.DEFINE_enum('aggregation', 'mean', ALL_AGGREGATORS, 'select aggregation type to use')
   flags.DEFINE_enum('attack', 'sign_flip', list(LOCAL_ATTACKS), 'select attack type')
   flags.DEFINE_float('num_byzantine', 0.1, 'select either the proportion or the number of byzantine clients', 0.0)
   flags.DEFINE_enum('byzantines_part_of', 'total', BYZANTINES_PART_OF,
@@ -132,66 +140,39 @@ def configure_task():
   return model_fn, train_data, test_data
 
 
-def configure_client_weight_fn():
-  client_weight_fn = None
-  if FLAGS.weight_preproc == 'num_examples' and FLAGS.task in task_utils.TASKS_NUM_TOKENS:
-    def client_weight_fn(local_outputs):
-      return tf.cast(tf.squeeze(local_outputs['num_tokens']), tf.float32)
-  elif FLAGS.weight_preproc == 'uniform':
-    client_weight_fn = ClientWeighting.UNIFORM
-  return client_weight_fn
-
-
-def configure_inner_aggregator():
-  inner_aggregator = mean
-  inner_aggregators = {'trimmed_mean': functools.partial(trimmed_mean, beta=FLAGS.alpha),
-                       'median': median,
-                       'mean': mean}
-  if FLAGS.aggregation in inner_aggregators:
-    inner_aggregator = inner_aggregators[FLAGS.aggregation]
-  return inner_aggregator
-
-
-def configure_aggregator(train_data):
-  inner_aggregator = configure_inner_aggregator()
-  if FLAGS.weight_preproc in PREPROC_TRANSFORMS:
-    preproc_constructor = PREPROC_TRANSFORMS[FLAGS.weight_preproc]
-    preproc_transform = preproc_constructor(alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
-    if FLAGS.byzantines_part_of == 'total':
-      preproc_transform.fit(train_data.datasets())
-
-    preprocesses = {'total': lambda weights: preproc_transform.transform(weights),
-                    'round': lambda weights: preproc_transform.fit_transform(weights)}
-
-    PreprocessedAggregationFactory(NumpyAggregationFactory(inner_aggregator),
-                                   preprocesses[FLAGS.byzantines_part_of])
-  else:
-    if FLAGS.aggregation == 'mean':
-      aggregator = None  # defaults to reduce mean
-    else:
-      aggregator = NumpyAggregationFactory(inner_aggregator)
-  return aggregator
-
-
-def configure_attack():
-  attack_constructor = LOCAL_ATTACKS[FLAGS.attack]
-  attack = attack_constructor()
-  return attack
-
-
 def configure_iterative_process(model_fn, train_data):
   client_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('client')
   server_optimizer_fn = optimizer_utils.create_optimizer_fn_from_flags('server')
-  client_weight_fn = configure_client_weight_fn()
-  aggregator = configure_aggregator(train_data)
-  attack = configure_attack()
-  iterative_process = build_federated_averaging_process(model_fn=model_fn,
-                                                        client_optimizer_fn=client_optimizer_fn,
-                                                        server_optimizer_fn=server_optimizer_fn,
-                                                        client_weighting=client_weight_fn,
-                                                        model_update_aggregation_factory=aggregator,
-                                                        byzantine_client_weight=FLAGS.byzantine_client_weight,
-                                                        attack=attack)
+
+  client_datasets = train_data.datasets()
+  weights = extract_weights(client_datasets)
+
+  preprocess_spec = PreprocessSpec(FLAGS.weight_preproc, FLAGS.byzantines_part_of, FLAGS.alpha, FLAGS.alpha_star,
+                                   weights)
+  preprocess = configure_preprocess(preprocess_spec)
+
+  aggregator_spec = AggregatorSpec(FLAGS.aggregation, preprocess, FLAGS.alpha)
+  aggregation_factory = configure_aggregator(aggregator_spec)
+
+  client_weighting_spec = ClientWeightingSpec(FLAGS.client_weighting, FLAGS.task, aggregation_factory)
+  client_weight_fn = configure_client_weight(client_weighting_spec)
+
+  attack_spec = AttackSpec(client_optimizer_fn, client_weight_fn, FLAGS.byzantine_client_weight, FLAGS.attack)
+  attack = configure_attack(attack_spec)
+
+  iterative_process = build_model_delta_optimizer_process(
+    model_fn,
+    model_to_client_delta_fn=attack,
+    server_optimizer_fn=server_optimizer_fn,
+    model_update_aggregation_factory=aggregation_factory)
+
+  server_state_type = iterative_process.state_type.member
+
+  @tff.tf_computation(server_state_type)
+  def get_model_weights(server_state):
+    return server_state.model
+
+  iterative_process.get_model_weights = get_model_weights
 
   @tff.tf_computation((tf.string, tf.bool))
   def build_train_dataset_from_client_id(client_id_with_byzflag):
@@ -201,12 +182,12 @@ def configure_iterative_process(model_fn, train_data):
 
   training_process = compose_dataset_computation_with_iterative_process(
     build_train_dataset_from_client_id, iterative_process)
-  training_process.get_model_weights = iterative_process.get_model_weights
+  training_process.get_model_weights = get_model_weights
   return training_process
 
 
-def configure_num_byzantine(client_ids):
-  max_sizes = {'total': len(client_ids), 'round': FLAGS.clients_per_round}
+def configure_num_byzantine(num_clients):
+  max_sizes = {'total': num_clients, 'round': FLAGS.clients_per_round}
   num_byzantine = FLAGS.num_byzantine
   max_size = max_sizes[FLAGS.byzantines_part_of]
   if num_byzantine < 1:
@@ -224,7 +205,7 @@ def configure_client_datasets_fn(train_data):
   client_ids_fn = tff.simulation.build_uniform_sampling_fn(
     client_ids, replace=False, random_seed=FLAGS.client_datasets_random_seed)
 
-  num_byzantine = configure_num_byzantine(client_ids)
+  num_byzantine = configure_num_byzantine(len(client_ids))
   chosen_byz_ids = set(np.random.choice(client_ids, num_byzantine, False))
 
   def client_sampling_fn_with_byzantine(round_num):
@@ -237,6 +218,7 @@ def configure_client_datasets_fn(train_data):
       byz_mask = np.array([client_id in chosen_byz_ids for client_id in chosen_client_ids], dtype=np.bool)
 
     return list(zip(chosen_client_ids, byz_mask))
+
   return client_sampling_fn_with_byzantine
 
 

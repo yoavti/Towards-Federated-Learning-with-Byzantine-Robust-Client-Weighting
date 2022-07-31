@@ -1,19 +1,20 @@
+import numpy as np
 from absl import app, flags
 from pprint import PrettyPrinter
 
 from experiments.preprocess_comparison.utils.comparison_utils import plot_weights, available_metrics
-from load import dataset_modules, get_client_weights
+from shared.extract_client_weights import DATASET_MODULES, get_client_weights
 
-from google_tff_research.utils import utils_impl
-from preprocess import PREPROC_TRANSFORMS
-from preprocess.utils import is_valid_solution, maximal_weight_proportion
-from flags_validators import create_optional_validator, check_positive, check_proportion
+from shared.google_tff_research.utils import utils_impl
+from shared.preprocess import PREPROC_TRANSFORMS
+from shared.preprocess.utils import is_valid_solution, maximal_weight_proportion
+from shared.flags_validators import create_optional_validator, check_positive, check_proportion
 
 pp = PrettyPrinter()
 
 
 with utils_impl.record_hparam_flags() as comparison_flags:
-  flags.DEFINE_enum('dataset', 'emnist', list(dataset_modules), 'Which dataset to take weights from.')
+  flags.DEFINE_enum('dataset', 'emnist', list(DATASET_MODULES), 'Which dataset to take weights from.')
   flags.DEFINE_integer('limit_count', None, 'Number of weights to take from dataset.')
   flags.DEFINE_multi_enum('preprocess_funcs', list(PREPROC_TRANSFORMS), list(PREPROC_TRANSFORMS),
                           'What to do with the clients\' relative weights.')
@@ -61,6 +62,8 @@ def compare_weights(original_weights, named_new_weights, named_metrics,
 def main(_):
   # loading client weights
   weights = get_client_weights(FLAGS.dataset, FLAGS.limit_count)
+  weights = list(weights)
+  weights = np.array(weights)
   # applying different preprocess procedures
   selected_preprocess_constructors = {name: PREPROC_TRANSFORMS[name] for name in FLAGS.preprocess_funcs}
   selected_preprocess = {name: constructor(alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)
