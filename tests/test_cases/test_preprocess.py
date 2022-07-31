@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import unittest
-from shared.load import get_client_weights
+from shared.client_weights import get_client_weights
 from shared.preprocess import LP, Truncate
 from shared.preprocess.utils import maximal_weight_proportion
 

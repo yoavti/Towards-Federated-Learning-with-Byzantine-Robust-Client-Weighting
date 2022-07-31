@@ -31,7 +31,7 @@ from shared.google_tff_research.utils.optimizers import optimizer_utils
 from shared.preprocess import PREPROC_TRANSFORMS
 from shared.aggregators import trimmed_mean, median, mean, NumpyAggregationFactory, PreprocessedAggregationFactory
 from shared.flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
-from shared.load import client_datasets_to_weights
+from shared.client_weights import client_datasets_to_weights
 
 from shared.attacks.local import LOCAL_ATTACKS
 from shared.tff_patch import build_federated_averaging_process, compose_dataset_computation_with_iterative_process
