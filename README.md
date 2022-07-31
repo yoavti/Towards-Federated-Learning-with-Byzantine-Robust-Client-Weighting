@@ -4,9 +4,13 @@ This repository is the official implementation of the paper 'Towards Federated L
 
 ## Folder structure
 
-`experiments/shakespeare` contains our experiments using the Shakespeare dataset.
+* `experiments/training` contains experiments where a model is trained on a given distributed dataset.
+* `experiments/preprocess_comparison` contains a script comparing different preprocessing procedures both numerically and visually.
+* `shared` contains helper modules used throughout our code.
+* `tests` contains unit tests for the different modules/scripts used in the code
 
-`experiments/mnist` contains our MNIST experiments.
+## Requirements
 
-`shared` contains code shared by both experiments.
-
+```setup
+pip install -r requirements.txt
+```
