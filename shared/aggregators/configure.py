@@ -1,11 +1,9 @@
 from functools import partial
 
 from shared.aggregators.spec import AggregatorSpec
-from shared.aggregators.factory.numpy_aggregation_factory import NumpyAggregationFactory
+from shared.aggregators.numpy_aggregation_factory import NumpyAggregationFactory
 from shared.aggregators.numpy_aggregators import mean, median, trimmed_mean
-from shared.aggregators.factory.robust_weiszfeld_factory import RobustWeiszfeldFactory
-from shared.aggregators.factory.preprocessed_aggregation_factory import PreprocessedAggregationFactory
-from shared.aggregators.options import NUMPY_AGGREGATORS
+from shared.aggregators.options import AGGREGATORS
 
 
 def _configure_inner_aggregator(aggregation, alpha):
@@ -20,10 +18,19 @@ def _configure_inner_aggregator(aggregation, alpha):
   return mean
 
 
+def _build_aggregate_with_preprocess(inner_aggregator, preprocess):
+  def aggregate_with_preprocess(points, weights):
+    weights = preprocess(weights)
+    return inner_aggregator(points, weights)
+  return aggregate_with_preprocess
+
+
 def _configure_numpy_aggregator(aggregation, preprocess, alpha):
   if not preprocess and aggregation == 'mean':
     return None
   inner_aggregator = _configure_inner_aggregator(aggregation, alpha)
+  if preprocess:
+    inner_aggregator = _build_aggregate_with_preprocess(inner_aggregator, preprocess)
   aggregation_factory = NumpyAggregationFactory(inner_aggregator)
   return aggregation_factory
 
@@ -33,12 +40,8 @@ def configure_aggregator(aggregator_spec: AggregatorSpec):
   preprocess = aggregator_spec.preprocess
   alpha = aggregator_spec.alpha
 
-  if aggregation in NUMPY_AGGREGATORS:
+  if aggregation in AGGREGATORS:
     aggregation_factory = _configure_numpy_aggregator(aggregation, preprocess, alpha)
-  elif aggregation == 'rsa':
-    aggregation_factory = RobustWeiszfeldFactory()
   else:
     return None
-  if preprocess:
-    aggregation_factory = PreprocessedAggregationFactory(aggregation_factory, preprocess)
   return aggregation_factory
