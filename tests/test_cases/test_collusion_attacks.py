@@ -14,7 +14,7 @@
 
 import unittest
 import numpy as np
-from attacks.collusion import DeltaToZeroAttack, ScalarPAFAttack
+from shared.attacks.collusion import DeltaToZeroAttack, ScalarPAFAttack
 
 
 def gen_rand_vec(dn=10):

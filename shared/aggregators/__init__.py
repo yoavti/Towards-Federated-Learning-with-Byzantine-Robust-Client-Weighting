@@ -1,0 +1,4 @@
+from shared.aggregators.numpy_aggregators import mean, median, trimmed_mean
+from shared.aggregators.numpy_aggregation_factory import NumpyAggregationFactory
+from shared.aggregators.preprocessed_aggregation_factory import PreprocessedAggregationFactory
+from shared.aggregators.robust_weiszfeld_factory import RobustWeiszfeldFactory

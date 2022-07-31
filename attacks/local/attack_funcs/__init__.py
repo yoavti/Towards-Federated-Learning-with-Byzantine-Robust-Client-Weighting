@@ -1,8 +1,0 @@
-from attacks.local.attack_funcs.constant import ConstantAttack
-from attacks.local.attack_funcs.gaussian import GaussianAttack
-from attacks.local.attack_funcs.random_sign_flip import RandomSignFlipAttack
-from attacks.local.attack_funcs.sign_flip import SignFlipAttack
-
-
-LOCAL_ATTACKS = {'constant': ConstantAttack, 'gaussian': GaussianAttack, 'random_sign_flip': RandomSignFlipAttack,
-                 'sign_flip': SignFlipAttack}
