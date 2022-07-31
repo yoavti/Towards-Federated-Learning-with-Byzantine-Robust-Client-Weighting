@@ -30,11 +30,12 @@ FLAGS.server_learning_rate = 1.0
 FLAGS.server_sgd_momentum = 0.0
 
 
-def test_run_experiment(task, weight_preproc='num_examples', aggregation='mean', attack='sign_flip', num_byzantine=0.1,
-                        byzantines_part_of='round'):
+def test_run_experiment(task, weight_preproc='none', client_weighting='num_examples', aggregation='mean',
+                        attack='sign_flip', num_byzantine=0.1, byzantines_part_of='round'):
   print(task, weight_preproc, aggregation, attack)
   FLAGS.task = task
   FLAGS.weight_preproc = weight_preproc
+  FLAGS.client_weighting = client_weighting
   FLAGS.aggregation = aggregation
   FLAGS.attack = attack
   FLAGS.num_byzantine = num_byzantine
