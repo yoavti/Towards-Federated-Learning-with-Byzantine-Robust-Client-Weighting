@@ -2,21 +2,22 @@ import numpy as np
 import tensorflow_federated as tff
 
 
-dataset_modules = {'cifar100': tff.simulation.datasets.cifar100,
+DATASET_MODULES = {'cifar100': tff.simulation.datasets.cifar100,
                    'emnist': tff.simulation.datasets.emnist,
                    'gldv2': tff.simulation.datasets.gldv2,
                    'experiments': tff.simulation.datasets.shakespeare,
                    'stackoverflow': tff.simulation.datasets.stackoverflow}
 
 
-def load_dataset(name):
-    module = dataset_modules[name]
-    return module.load_data()[0]
+def client_datasets_to_weights(client_datasets):
+  weights = [len(list(client_dataset)) for client_dataset in client_datasets]
+  weights = np.array(weights)
+  return weights
 
 
 def get_client_weights(name, limit_count=None):
-    dataset = load_dataset(name)
-    client_datasets = dataset.datasets(limit_count=limit_count)
-    weights = [len(list(client_dataset)) for client_dataset in client_datasets]
-    weights = np.array(weights)
-    return weights
+  module = DATASET_MODULES[name]
+  dataset = module.load_data()[0]
+  client_datasets = dataset.datasets(limit_count=limit_count)
+  weights = client_datasets_to_weights(client_datasets)
+  return weights
