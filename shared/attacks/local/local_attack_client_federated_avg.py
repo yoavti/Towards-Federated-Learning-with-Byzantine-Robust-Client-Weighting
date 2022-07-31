@@ -7,7 +7,7 @@ from tensorflow_federated.python.learning import model as model_lib
 
 from shared.tff_patch.federated_averaging import ByzantineWeightClientFedAvg
 from shared.tff_patch import optimizer_utils
-from shared.attacks.local.attack_funcs.base import LocalAttack
+from shared.attacks.local import LocalAttack
 
 
 class LocalAttackClientFedAvg(ByzantineWeightClientFedAvg):

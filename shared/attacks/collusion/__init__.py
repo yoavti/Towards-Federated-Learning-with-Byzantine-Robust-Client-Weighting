@@ -1,1 +1,1 @@
-from shared.attacks.collusion.attack_funcs import ScalarPAFAttack, DeltaToZeroAttack, COLLUSION_ATTACKS
+from shared.attacks.collusion.attack_funcs import CollusionAttack, ScalarPAFAttack, DeltaToZeroAttack, COLLUSION_ATTACKS
