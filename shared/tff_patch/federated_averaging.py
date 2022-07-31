@@ -117,15 +117,6 @@ def build_federated_averaging_process(
     A `tff.templates.IterativeProcess`.
   """
 
-  if isinstance(model_update_aggregation_factory,
-                factory.UnweightedAggregationFactory):
-    if client_weighting is None:
-      client_weighting = client_weight_lib.ClientWeighting.UNIFORM
-    elif client_weighting is not client_weight_lib.ClientWeighting.UNIFORM:
-      raise ValueError('Cannot use non-uniform client weighting with unweighted aggregation.')
-  elif client_weighting is None:
-    client_weighting = client_weight_lib.ClientWeighting.NUM_EXAMPLES
-
   model_to_client_delta_fn = ByzantineWeightClientFedAvg.model_to_client_delta_fn(
     client_optimizer_fn,
     client_weighting=client_weighting,
