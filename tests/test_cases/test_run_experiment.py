@@ -54,7 +54,7 @@ def test_run_experiment(task, client_weighting='num_examples', weight_preproc='n
 class RunExperimentTest(unittest.TestCase):
   def test_all(self):
     tasks = ['cifar100_image', 'emnist_autoencoder', 'emnist_character', 'shakespeare_character']
-    num_byzantines = [0.1, 2]
+    num_byzantines = [0.1, 2.]
     for task in tasks:
       for client_weighting in CLIENT_WEIGHTING:
         for weight_preproc in list(PREPROC_TRANSFORMS) + ['none']:
