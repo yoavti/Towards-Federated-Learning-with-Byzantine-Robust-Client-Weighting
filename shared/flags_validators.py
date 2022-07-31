@@ -24,3 +24,16 @@ def create_optional_validator(validator):
   def ret(value):
     return value is None or validator(value)
   return ret
+
+
+def create_in_validator(items):
+  def ret(value):
+    return value in items
+  return ret
+
+
+def add_exception(validator, msg='Argument validation failed'):
+  def ret(_, value):
+    if not validator(value):
+      raise ValueError(msg)
+  return ret
