@@ -24,6 +24,6 @@ class AttackSpec(object):
     validator=attr.validators.optional(attr.validators.instance_of(int)))
   """Number of samples each Byzantine client reports."""
   attack: str = attr.ib(
-    default='sign_flip',
-    validator=[attr.validators.instance_of(str)])
+    default='none',
+    validator=attr.validators.instance_of(str))
   """A string specifying which attack takes place."""
