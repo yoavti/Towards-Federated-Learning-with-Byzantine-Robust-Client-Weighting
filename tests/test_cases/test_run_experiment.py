@@ -48,7 +48,7 @@ def test_run_experiment(task, client_weighting='num_examples', weight_preproc='n
 
 class RunExperimentTest(unittest.TestCase):
   def test_shakespeare(self):
-    test_run_experiment('shakespeare_character', attack='none')
+    test_run_experiment('shakespeare_character')
 
 
 if __name__ == '__main__':
