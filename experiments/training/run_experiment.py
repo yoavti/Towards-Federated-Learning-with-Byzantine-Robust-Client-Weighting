@@ -81,7 +81,7 @@ with utils_impl.record_hparam_flags() as shared_flags:
   flags.DEFINE_enum('weight_preproc', 'none', list(PREPROC_TRANSFORMS) + ['none'],
                     'Whether to use the clients\' weight or not.')
   flags.DEFINE_enum('aggregation', 'mean', AGGREGATORS, 'select aggregation type to use')
-  flags.DEFINE_enum('attack', 'sign_flip', list(ALL_ATTACKS), 'select attack type')
+  flags.DEFINE_enum('attack', 'none', list(ALL_ATTACKS) + ['none'], 'select attack type')
   flags.DEFINE_float('num_byzantine', 0.1, 'select either the proportion or the number of byzantine clients', 0.0)
   flags.DEFINE_enum('byzantines_part_of', 'round', BYZANTINES_PART_OF,
                     'select whether num_clients are takes as part of the total amount of clients or in each round')
