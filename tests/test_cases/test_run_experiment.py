@@ -17,11 +17,6 @@ import unittest
 
 from absl import app, flags
 
-from shared.client_weighting import CLIENT_WEIGHTING
-from shared.preprocess import PREPROC_TRANSFORMS
-from shared.aggregators import AGGREGATORS
-from shared.attacks import ALL_ATTACKS
-
 from experiments.training import run_experiment
 
 FLAGS = flags.FLAGS
@@ -52,16 +47,8 @@ def test_run_experiment(task, client_weighting='num_examples', weight_preproc='n
 
 
 class RunExperimentTest(unittest.TestCase):
-  def test_all(self):
-    tasks = ['cifar100_image', 'emnist_autoencoder', 'emnist_character', 'shakespeare_character']
-    num_byzantines = [0.1, 2.]
-    for task in tasks:
-      for client_weighting in CLIENT_WEIGHTING:
-        for weight_preproc in list(PREPROC_TRANSFORMS) + ['none']:
-          for aggregation in AGGREGATORS:
-            for attack in ALL_ATTACKS:
-              for num_byzantine in num_byzantines:
-                test_run_experiment(task, client_weighting, weight_preproc, aggregation, attack, num_byzantine)
+  def test_shakespeare(self):
+    test_run_experiment('shakespeare_character', attack='none')
 
 
 if __name__ == '__main__':
