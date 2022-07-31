@@ -1,7 +1,6 @@
 import attr
 from typing import Optional, Iterable
 from shared.flags_validators import add_exception, create_in_validator, check_proportion
-from shared.preprocess.methods.dict import PREPROC_TRANSFORMS
 
 
 BYZANTINES_PART_OF = {'total', 'round'}
@@ -12,7 +11,7 @@ class PreprocessSpec(object):
   """Contains information for configuring attacks."""
   weight_preproc: str = attr.ib(
     default='weight_preproc',
-    validator=[attr.validators.instance_of(str), add_exception(create_in_validator({'num_examples'}))])
+    validator=[attr.validators.instance_of(str)])
   """A string specifying what to do with the clients' relative weights."""
   byzantines_part_of: str = attr.ib(
     default='byzantines_part_of',
