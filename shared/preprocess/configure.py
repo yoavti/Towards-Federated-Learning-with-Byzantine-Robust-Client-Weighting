@@ -18,6 +18,7 @@ def configure_preprocess(preprocess_spec: PreprocessSpec):
   if byzantines_part_of == 'total':
     if not all_weights:
       raise ValueError('If byzantines_part_of = total, client_datasets must be specified')
+    all_weights = list(all_weights)
     all_weights = np.array(all_weights)
     preproc_transform.fit(all_weights)
   preprocess_func = PREPROCESS_FUNC_CREATORS[byzantines_part_of](preproc_transform)
