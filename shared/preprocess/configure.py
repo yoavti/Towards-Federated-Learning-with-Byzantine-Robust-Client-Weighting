@@ -1,3 +1,4 @@
+import numpy as np
 from shared.preprocess.spec import PreprocessSpec
 from shared.preprocess.methods.dict import PREPROC_TRANSFORMS
 from shared.preprocess.utils.preprocess_func_creators import PREPROCESS_FUNC_CREATORS
@@ -13,7 +14,8 @@ def configure_preprocess(preprocess_spec: PreprocessSpec):
   preproc_transform = PREPROC_TRANSFORMS[weight_preproc](alpha=alpha, alpha_star=alpha_star)
   if byzantines_part_of == 'total':
     if not all_weights:
-      raise ValueError('If byzantines_part_of = total, all_weights must be provided')
+      raise ValueError('If byzantines_part_of = total, client_datasets must be specified')
+    all_weights = np.array(all_weights)
     preproc_transform.fit(all_weights)
   preprocess_func = PREPROCESS_FUNC_CREATORS[byzantines_part_of](preproc_transform)
 

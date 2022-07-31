@@ -10,8 +10,8 @@ DATASET_MODULES = {'cifar100': tff.simulation.datasets.cifar100,
 
 
 def extract_weights(client_datasets):
-  weights = [len(list(client_dataset)) for client_dataset in client_datasets]
-  weights = np.array(weights)
+  listed = (list(client_dataset) for client_dataset in client_datasets)
+  weights = (len(client_dataset) for client_dataset in listed)
   return weights
 
 

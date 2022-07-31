@@ -1,3 +1,4 @@
+import numpy as np
 from absl import app, flags
 from pprint import PrettyPrinter
 
@@ -61,6 +62,8 @@ def compare_weights(original_weights, named_new_weights, named_metrics,
 def main(_):
   # loading client weights
   weights = get_client_weights(FLAGS.dataset, FLAGS.limit_count)
+  weights = list(weights)
+  weights = np.array(weights)
   # applying different preprocess procedures
   selected_preprocess_constructors = {name: PREPROC_TRANSFORMS[name] for name in FLAGS.preprocess_funcs}
   selected_preprocess = {name: constructor(alpha=FLAGS.alpha, alpha_star=FLAGS.alpha_star)

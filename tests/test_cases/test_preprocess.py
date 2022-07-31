@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import unittest
+
+import numpy as np
+
 from shared.client_weights import get_client_weights
 from shared.preprocess import LP, Truncate
 from shared.preprocess.utils import maximal_weight_proportion
@@ -31,6 +34,8 @@ class PreprocessTest(unittest.TestCase):
 
   def _test_valid(self, preprocess_constructor):
     N = get_client_weights(DATASET, LIMIT_COUNT)
+    N = list(N)
+    N = np.array(N)
     preprocess_transform = preprocess_constructor(alpha=ALPHA, alpha_star=ALPHA_STAR)
     N_ = preprocess_transform.fit_transform(N)
     self._is_valid_solution(N_)
