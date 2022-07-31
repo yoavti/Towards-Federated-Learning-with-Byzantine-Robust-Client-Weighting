@@ -21,8 +21,6 @@ Communication-Efficient Learning of Deep Networks from Decentralized Data
     https://arxiv.org/abs/1602.05629
 """
 
-import warnings
-
 from typing import Callable, Optional, Any, Union
 
 import tensorflow as tf
@@ -30,34 +28,25 @@ import tensorflow as tf
 from tensorflow_federated.python.aggregators import factory
 from tensorflow_federated.python.core.api import computations
 from tensorflow_federated.python.core.templates import iterative_process
-from tensorflow_federated.python.core.templates import measured_process
 from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from shared.tff_patch import optimizer_utils
-from shared.attacks.local import LocalAttack
 from shared.tff_patch.byzantine_weight_client_fed_avg import ByzantineWeightClientFedAvg
 
 
-DEFAULT_SERVER_OPTIMIZER_FN = lambda: tf.keras.optimizers.SGD(learning_rate=1.0)
+def _default_server_optimizer_fn():
+  return tf.keras.optimizers.SGD(learning_rate=1.0)
 
 
-# TODO(b/170208719): Remove `aggregation_process` after migration to
-# `model_update_aggregation_factory`.
 def build_federated_averaging_process(
     model_fn: Callable[[], model_lib.Model],
     client_optimizer_fn: Callable[[], tf.keras.optimizers.Optimizer],
-    server_optimizer_fn: Callable[
-        [], tf.keras.optimizers.Optimizer] = DEFAULT_SERVER_OPTIMIZER_FN,
+    server_optimizer_fn: Callable[[], tf.keras.optimizers.Optimizer] = _default_server_optimizer_fn,
     *,  # Require named (non-positional) parameters for the following kwargs:
     client_weighting: Optional[Union[client_weight_lib.ClientWeightType, Callable[[Any], tf.Tensor]]] = None,
-    broadcast_process: Optional[measured_process.MeasuredProcess] = None,
-    aggregation_process: Optional[measured_process.MeasuredProcess] = None,
-    model_update_aggregation_factory: Optional[
-        factory.WeightedAggregationFactory] = None,
-    use_experimental_simulation_loop: bool = False,
-    byzantine_client_weight: int = 1_000_000,
-    attack: Optional[LocalAttack] = None
+    model_update_aggregation_factory: Optional[factory.WeightedAggregationFactory] = None,
+    byzantine_client_weight: int = 1_000_000
 ) -> iterative_process.IterativeProcess:
   """Builds an iterative process that performs federated averaging.
 
@@ -102,12 +91,6 @@ def build_federated_averaging_process(
   sophisticated federated averaging procedures may use different learning rates
   or server optimizers.
 
-  WARNING: `aggregation_process` argument is deprecated and will be removed in
-  a future version. Use `model_update_aggregation_factory` instead. See
-  https://www.tensorflow.org/federated/tutorials/tuning_recommended_aggregators
-  and https://www.tensorflow.org/federated/tutorials/custom_aggregators
-  tutorials for details of use of `tff.aggregators` module.
-
   Args:
     model_fn: A no-arg function that returns a `tff.learning.Model`. This method
       must *not* capture TensorFlow tensors or variables and use them. The model
@@ -122,27 +105,13 @@ def build_federated_averaging_process(
       `model.report_local_outputs` and returns a tensor that provides the weight
       in the federated average of model deltas. If None, defaults to weighting
       by number of examples.
-    broadcast_process: a `tff.templates.MeasuredProcess` that broadcasts the
-      model weights on the server to the clients. It must support the signature
-      `(input_values@SERVER -> output_values@CLIENT)`. If set to default None,
-      the server model is broadcast to the clients using the default
-      tff.federated_broadcast.
-    aggregation_process: a `tff.templates.MeasuredProcess` that aggregates the
-      model updates on the clients back to the server. It must support the
-      signature `({input_values}@CLIENTS-> output_values@SERVER)`. Must be
-      `None` if `model_update_aggregation_factory` is not `None.`
     model_update_aggregation_factory: An optional
       `tff.aggregators.WeightedAggregationFactory` or
       `tff.aggregators.UnweightedAggregationFactory` that constructs
       `tff.templates.AggregationProcess` for aggregating the client model
       updates on the server. If `None`, uses `tff.aggregators.MeanFactory`. Must
       be `None` if `aggregation_process` is not `None.`
-    use_experimental_simulation_loop: Controls the reduce loop function for
-        input dataset. An experimental reduce loop is used for simulation.
-        It is currently necessary to set this flag to True for performant GPU
-        simulations.
     byzantine_client_weight: Number of samples each Byzantine client reports.
-    attack: An optional `LocalAttack` that specifies which Byzantine attack takes place
 
   Returns:
     A `tff.templates.IterativeProcess`.
@@ -153,33 +122,20 @@ def build_federated_averaging_process(
     if client_weighting is None:
       client_weighting = client_weight_lib.ClientWeighting.UNIFORM
     elif client_weighting is not client_weight_lib.ClientWeighting.UNIFORM:
-      raise ValueError('Cannot use non-uniform client weighting with '
-                       'unweighted aggregation.')
+      raise ValueError('Cannot use non-uniform client weighting with unweighted aggregation.')
   elif client_weighting is None:
     client_weighting = client_weight_lib.ClientWeighting.NUM_EXAMPLES
 
-  if aggregation_process is not None:
-    warnings.warn(
-        'The aggregation_process argument to '
-        'tff.learning.build_federated_averaging_process is deprecated and will '
-        'be removed in a future version. Use model_update_aggregation_factory '
-        'instead. See '
-        'https://www.tensorflow.org/federated/tutorials/tuning_recommended_aggregators'
-        ' and '
-        'https://www.tensorflow.org/federated/tutorials/custom_aggregators '
-        'tutorials for details of use of tff.aggregators module.',
-        DeprecationWarning)
+  model_to_client_delta_fn = ByzantineWeightClientFedAvg.model_to_client_delta_fn(
+    client_optimizer_fn,
+    client_weighting=client_weighting,
+    byzantine_client_weight=byzantine_client_weight)
 
   iter_proc = optimizer_utils.build_model_delta_optimizer_process(
-      model_fn,
-      model_to_client_delta_fn=ByzantineWeightClientFedAvg.model_to_client_delta_fn(
-        client_optimizer_fn, client_weighting=client_weighting,
-        use_experimental_simulation_loop=use_experimental_simulation_loop,
-        byzantine_client_weight=byzantine_client_weight),
-      server_optimizer_fn=server_optimizer_fn,
-      broadcast_process=broadcast_process,
-      aggregation_process=aggregation_process,
-      model_update_aggregation_factory=model_update_aggregation_factory)
+    model_fn,
+    model_to_client_delta_fn=model_to_client_delta_fn,
+    server_optimizer_fn=server_optimizer_fn,
+    model_update_aggregation_factory=model_update_aggregation_factory)
 
   server_state_type = iter_proc.state_type.member
 
