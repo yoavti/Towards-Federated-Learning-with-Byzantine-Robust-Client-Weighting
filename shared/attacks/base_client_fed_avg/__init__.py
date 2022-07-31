@@ -1,0 +1,2 @@
+from shared.attacks.base_client_fed_avg.byzantine_client_fed_avg import ByzantineClientFedAvg
+from shared.attacks.base_client_fed_avg.byzantine_weight_client_fed_avg import ByzantineWeightClientFedAvg

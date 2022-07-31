@@ -32,7 +32,7 @@ from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from shared.tff_patch import optimizer_utils
-from shared.tff_patch.byzantine_weight_client_fed_avg import ByzantineWeightClientFedAvg
+from shared.attacks.base_client_fed_avg.byzantine_weight_client_fed_avg import ByzantineWeightClientFedAvg
 
 
 def _default_server_optimizer_fn():

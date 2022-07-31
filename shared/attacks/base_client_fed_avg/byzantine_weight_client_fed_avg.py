@@ -6,7 +6,7 @@ from tensorflow_federated.python.learning import client_weight_lib
 from tensorflow_federated.python.learning import model as model_lib
 
 from shared.tff_patch import optimizer_utils
-from shared.tff_patch.byzantine_client_fed_avg import ByzantineClientFedAvg
+from shared.attacks.base_client_fed_avg.byzantine_client_fed_avg import ByzantineClientFedAvg
 
 
 class ByzantineWeightClientFedAvg(ByzantineClientFedAvg):
