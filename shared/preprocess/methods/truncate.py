@@ -1,5 +1,7 @@
 import numpy as np
+
 from math import isclose
+
 from shared.preprocess.utils import trunc_helpers, maximal_weight_proportion, is_valid_solution, Preprocess
 
 

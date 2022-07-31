@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow_federated as tff
 
 

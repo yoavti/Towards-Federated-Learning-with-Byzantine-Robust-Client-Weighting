@@ -1,4 +1,5 @@
 import tensorflow as tf
+
 from shared.attacks.collusion.attack_funcs.base import CollusionAttack
 
 

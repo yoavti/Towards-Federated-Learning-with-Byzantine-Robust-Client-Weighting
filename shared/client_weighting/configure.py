@@ -1,6 +1,8 @@
 import tensorflow as tf
+
 from tensorflow_federated.python.learning import ClientWeighting
 from tensorflow_federated.python.aggregators.factory import UnweightedAggregationFactory
+
 from shared.client_weighting.spec import ClientWeightingSpec
 from shared.google_tff_research.utils import task_utils
 

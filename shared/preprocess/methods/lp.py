@@ -1,5 +1,7 @@
 import numpy as np
+
 from ortools.linear_solver.pywraplp import Solver
+
 from shared.preprocess.utils import trunc_helpers, VectorMapMean
 
 

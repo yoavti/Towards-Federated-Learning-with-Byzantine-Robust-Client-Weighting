@@ -1,4 +1,5 @@
 import numpy as np
+
 from shared.preprocess.utils.transforms.vector_map import VectorMap
 
 

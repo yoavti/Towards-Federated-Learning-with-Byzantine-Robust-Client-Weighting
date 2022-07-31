@@ -1,6 +1,9 @@
 import attr
+
 from typing import Callable, Optional, Any, Union
+
 import tensorflow as tf
+
 from tensorflow_federated.python.learning.client_weight_lib import ClientWeightType, ClientWeighting
 
 

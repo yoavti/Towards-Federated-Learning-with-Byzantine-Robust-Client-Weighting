@@ -1,4 +1,5 @@
 from functools import partial
+
 from shared.aggregators.spec import AggregatorSpec
 from shared.aggregators.factory.numpy_aggregation_factory import NumpyAggregationFactory
 from shared.aggregators.numpy_aggregators import mean, median, trimmed_mean

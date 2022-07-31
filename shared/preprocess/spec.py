@@ -1,9 +1,9 @@
 import attr
+
 from typing import Optional, Iterable
+
 from shared.flags_validators import add_exception, create_in_validator, check_proportion
-
-
-BYZANTINES_PART_OF = {'total', 'round'}
+from shared.byzantines_part_of import BYZANTINES_PART_OF
 
 
 @attr.s(eq=False, order=False, frozen=True)

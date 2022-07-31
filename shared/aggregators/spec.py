@@ -1,5 +1,7 @@
 import attr
+
 from typing import Optional, Callable, Any
+
 from shared.flags_validators import add_exception, create_in_validator, check_proportion, create_optional_validator
 from shared.aggregators.options import ALL_AGGREGATORS
 

@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import unittest
+
 import numpy as np
+
 from shared.attacks.local import ConstantAttack, SignFlipAttack
 
 

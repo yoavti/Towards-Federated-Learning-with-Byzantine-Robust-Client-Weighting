@@ -1,7 +1,10 @@
 import attr
+
 from typing import Optional
-from shared.client_weighting.dict import CLIENT_WEIGHTING
+
 from tensorflow_federated.python.aggregators.factory import AggregationFactory
+
+from shared.client_weighting.dict import CLIENT_WEIGHTING
 
 
 def _convert_client_weighting(client_weighting):

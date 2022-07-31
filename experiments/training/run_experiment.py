@@ -27,7 +27,8 @@ from shared.google_tff_research.utils.optimizers import optimizer_utils
 
 from shared.flags_validators import check_positive, check_non_negative, check_proportion, check_integer, create_or_validator
 from shared.extract_client_weights import extract_weights
-from shared.tff_patch import build_model_delta_optimizer_process, compose_dataset_computation_with_iterative_process
+from shared.tff_patch.federated_averaging import build_model_delta_optimizer_process
+from shared.tff_patch.iterative_process_compositions import compose_dataset_computation_with_iterative_process
 
 from shared.aggregators.spec import AggregatorSpec
 from shared.attacks.spec import AttackSpec

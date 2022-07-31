@@ -1,4 +1,5 @@
 import tensorflow as tf
+
 from shared.attacks.local.attack_funcs.base import LocalAttack
 
 
