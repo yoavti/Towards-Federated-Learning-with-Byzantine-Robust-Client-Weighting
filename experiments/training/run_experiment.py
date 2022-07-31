@@ -41,7 +41,7 @@ from shared.attacks.configure import configure_attack
 from shared.preprocess.configure import configure_preprocess
 from shared.client_weighting.configure import configure_client_weight
 
-from shared.attacks.local import LOCAL_ATTACKS
+from shared.attacks import ALL_ATTACKS
 from shared.aggregators import ALL_AGGREGATORS
 from shared.client_weighting import CLIENT_WEIGHTING
 from shared.preprocess import PREPROC_TRANSFORMS
@@ -76,12 +76,12 @@ with utils_impl.record_hparam_flags() as shared_flags:
                        'How often to checkpoint the global model.')
 
   # Parameters specific for our paper
-  flags.DEFINE_enum('client_weighting', 'num_examples', CLIENT_WEIGHTING,
+  flags.DEFINE_enum('client_weighting', 'num_examples', list(CLIENT_WEIGHTING),
                     'What to do with the clients\' relative weights.')
   flags.DEFINE_enum('weight_preproc', 'none', list(PREPROC_TRANSFORMS) + ['none'],
                     'Whether to use the clients\' weight or not.')
   flags.DEFINE_enum('aggregation', 'mean', ALL_AGGREGATORS, 'select aggregation type to use')
-  flags.DEFINE_enum('attack', 'sign_flip', list(LOCAL_ATTACKS), 'select attack type')
+  flags.DEFINE_enum('attack', 'sign_flip', list(ALL_ATTACKS), 'select attack type')
   flags.DEFINE_float('num_byzantine', 0.1, 'select either the proportion or the number of byzantine clients', 0.0)
   flags.DEFINE_enum('byzantines_part_of', 'total', BYZANTINES_PART_OF,
                     'select whether num_clients are takes as part of the total amount of clients or in each round')
