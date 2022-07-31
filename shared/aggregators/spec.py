@@ -2,8 +2,7 @@ import attr
 
 from typing import Optional, Callable, Any
 
-from shared.flags_validators import add_exception, create_in_validator, check_proportion, create_optional_validator
-from shared.aggregators.options import ALL_AGGREGATORS
+from shared.flags_validators import add_exception, check_proportion, create_optional_validator
 
 
 @attr.s(eq=False, order=False, frozen=True)
@@ -11,7 +10,7 @@ class AggregatorSpec(object):
   """Contains information for configuring aggregators."""
   aggregation: str = attr.ib(
     default='aggregator',
-    validator=[attr.validators.instance_of(str), add_exception(create_in_validator(ALL_AGGREGATORS))])
+    validator=attr.validators.instance_of(str))
   """A string specifying which aggregation method to use."""
   preprocess: Optional[Callable[[Any], Any]] = attr.ib(
     default=None,

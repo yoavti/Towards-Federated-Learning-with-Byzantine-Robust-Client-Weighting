@@ -30,16 +30,15 @@ FLAGS.server_learning_rate = 1.0
 FLAGS.server_sgd_momentum = 0.0
 
 
-def test_run_experiment(task, weight_preproc='none', client_weighting='num_examples', aggregation='mean',
-                        attack='sign_flip', num_byzantine=0.1, byzantines_part_of='round'):
-  print(task, weight_preproc, aggregation, attack)
+def test_run_experiment(task, client_weighting='num_examples', weight_preproc='none', aggregation='mean',
+                        attack='sign_flip', num_byzantine=0.1):
+  print(task, client_weighting, weight_preproc, aggregation, attack, num_byzantine)
   FLAGS.task = task
-  FLAGS.weight_preproc = weight_preproc
   FLAGS.client_weighting = client_weighting
+  FLAGS.weight_preproc = weight_preproc
   FLAGS.aggregation = aggregation
   FLAGS.attack = attack
   FLAGS.num_byzantine = num_byzantine
-  FLAGS.byzantines_part_of = byzantines_part_of
   FLAGS.root_output_dir = tempfile.mkdtemp()
   try:
     app.run(run_experiment.main)
